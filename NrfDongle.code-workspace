@@ -11,7 +11,9 @@
 		}
 	],
 	"settings": {
-		"nrf-connect.applications": [],
+		"nrf-connect.applications": [
+			"${workspaceFolder}/app_dongle"
+		],
 		"nrf-connect.boardRoots": [
 			"${workspaceFolder}/boards"
 		]

@@ -5,7 +5,15 @@
 		},
 		{
 			"path": "/home/kh/ncs/v2.9.0"
+		},
+		{
+			"path": "../Nrf_Iot"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"nrf-connect.applications": [],
+		"nrf-connect.boardRoots": [
+			"${workspaceFolder}/boards"
+		]
+	}
 }

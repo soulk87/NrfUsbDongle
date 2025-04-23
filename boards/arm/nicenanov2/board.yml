@@ -1,0 +1,5 @@
+board:
+  name: nicenanov2
+  vendor: hkh
+  socs:
+    - name: nrf52840

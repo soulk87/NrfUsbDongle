@@ -103,7 +103,29 @@ static const uint8_t hid_report_desc[] = {
 };
 static bool usb_configured = false;
 
-// 콜백 함수 수정
+// VIA 데이터 처리 함수
+static void process_via_data(const uint8_t *data, size_t len) {
+    LOG_INF("Received VIA data:");
+    for (size_t i = 0; i < len; i++) {
+        LOG_INF("Byte %d: 0x%02X", i, data[i]);
+    }
+
+    // TODO: 데이터에 따른 동작 추가
+}
+
+// HID set_report 콜백
+static int hid_set_report_cb(const struct device *dev, uint8_t report_id,
+                             uint8_t report_type, const uint8_t *report, size_t report_len) {
+    if (report_id == REPORT_ID_VIA) {
+        LOG_INF("VIA report received");
+        process_via_data(report, report_len);
+    } else {
+        LOG_WRN("Unhandled report ID: 0x%02X", report_id);
+    }
+    return 0;
+}
+
+// USB 상태 콜백
 static void hid_status_cb(enum usb_dc_status_code status, const uint8_t *param) {
     switch (status) {
     case USB_DC_CONFIGURED:
@@ -125,6 +147,7 @@ static void hid_ready_cb(const struct device *dev) {
 
 static const struct hid_ops ops = {
     .int_in_ready = hid_ready_cb,
+    .set_report = hid_set_report_cb, // set_report 콜백 추가
 };
 
 static void send_keyboard_report(void) {

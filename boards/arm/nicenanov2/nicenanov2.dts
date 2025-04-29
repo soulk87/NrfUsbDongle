@@ -10,7 +10,7 @@
 		zephyr,sram = &sram0;
 		zephyr,console = &uart0;
 		zephyr,flash = &flash0;
-		zephyr,code-partition = &slot0_partition;
+		zephyr,code-partition = &app_partition;
 		zephyr,usb-device = &usbd;
 	};
 
@@ -77,31 +77,41 @@
 };
 
 &flash0 {
-	partitions {
-		compatible = "fixed-partitions";
-		#address-cells = <1>;
-		#size-cells = <1>;
+    partitions {
+        compatible = "fixed-partitions";
+        #address-cells = <1>;
+        #size-cells = <1>;
 
-		boot_partition: partition@0 {
-			label = "mcuboot";
-			reg = <0x00000000 DT_SIZE_K(48)>;
-		};
+        app_partition: partition@0 {
+            label = "application";
+            reg = <0x00000000 0x000D3000>; /* 0xE3000 - 0x1000 = 926KB */
+        };
 
-		slot0_partition: partition@c000 {
-			label = "image-0";
-			reg = <0x0000c000 DT_SIZE_K(472)>;
-		};
+        storage_partition: partition@d3000 {
+            label = "storage";
+            reg = <0x000D3000 0x00010000>; /* 64KB, BLE 데이터 저장용 */
+        };
 
-		slot1_partition: partition@82000 {
-			label = "image-1";
-			reg = <0x00082000 DT_SIZE_K(472)>;
-		};
+        dfu_data_partition: partition@e3000 {
+            label = "dfu-data";
+            reg = <0x000E3000 0x0000A000>; /* 40KB, 예약 */
+        };
 
-		storage_partition: partition@f8000 {
-			label = "storage";
-			reg = <0x000f8000 DT_SIZE_K(32)>;
-		};
-	};
+        bootloader_partition: partition@f4000 {
+            label = "bootloader";
+            reg = <0x000F4000 0x0000A000>; /* 38KB + 2KB */
+        };
+
+        mbr_params_partition: partition@fe000 {
+            label = "mbr-params";
+            reg = <0x000FE000 0x00001000>; /* 4KB */
+        };
+
+        bootloader_settings_partition: partition@ff000 {
+            label = "bootloader-settings";
+            reg = <0x000FF000 0x00001000>; /* 4KB */
+        };
+    };
 };
 
 

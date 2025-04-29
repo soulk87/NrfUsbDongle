@@ -12,3 +12,9 @@ CONFIG_CONSOLE=y
 CONFIG_UART_CONSOLE=y
 CONFIG_LOG=y
 CONFIG_NRFX_GPPI=y
+
+CONFIG_BUILD_OUTPUT_UF2=y
+CONFIG_ROM_START_OFFSET=0x1000
+
+# https://devzone.nordicsemi.com/f/nordic-q-a/97314/uf2-image-and-bootloader
+# https://devzone.nordicsemi.com/f/nordic-q-a/89216/adafruit-bootloader-nrf-connect-zephyr-application

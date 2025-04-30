@@ -4,5 +4,23 @@
     ],
     "nrf-connect.boardRoots": [
         "${workspaceFolder}\\boards"
-    ]
+    ],
+    "files.associations": {
+        "ap.h": "c",
+        "qmk.h": "c",
+        "port.h": "c",
+        "log.h": "c",
+        "adc.h": "c",
+        "cdc.h": "c",
+        "rtc.h": "c",
+        "qbuffer.h": "c",
+        "hw.h": "c",
+        "nvs.h": "c",
+        "uart.h": "c"
+    },
+    "cmake.sourceDirectory": "C:/GIT/NrfUsbDongle/app_dongle",
+    "C_Cpp.errorSquiggles": "enabled",
+    "nrf-connect.debugging.bindings": {
+        "${workspaceFolder}/app_dongle/build": "Launch build"
+    }
 }

@@ -14,26 +14,8 @@ extern "C" {
 
 #include "def.h"
 
-#include "sdkconfig.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/semphr.h"
-#include "freertos/queue.h"
-#include "freertos/task.h"
-#include "esp_system.h"
-#include "spi_flash_mmap.h"
-#include "esp_task_wdt.h"
-#include "esp_chip_info.h"
-#include "soc/rtc.h"
-#include "esp_log.h"
-#include "esp_timer.h"
-#include "esp_psram.h"
-#include "esp_flash.h"
-#include "hal/cache_hal.h"
-
-#include "esp_vfs.h"
-#include "nvs_flash.h"
-#include "esp_partition.h"
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
 
 
 #if 0

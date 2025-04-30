@@ -20,24 +20,26 @@ void bspInit(void)
 
 uint32_t bspGetCpuFreqMhz(void)
 {
-  rtc_cpu_freq_config_t conf;
-  rtc_clk_cpu_freq_get_config(&conf);
+  // rtc_cpu_freq_config_t conf;
+  // rtc_clk_cpu_freq_get_config(&conf);
 
-  return conf.freq_mhz;
+  // return conf.freq_mhz;
+  return 0;
 }
 
 void delay(uint32_t ms)
 {
-  vTaskDelay(ms / portTICK_PERIOD_MS);
+  k_msleep(ms);
 }
 
-uint32_t IRAM_ATTR millis(void)
+uint32_t millis(void)
 {
-  return (uint32_t)(esp_timer_get_time() / 1000ULL);
+  return (uint32_t)(k_uptime_get());
 }
 
-uint32_t IRAM_ATTR micros(void)
+uint32_t micros(void)
 {
-  return (uint32_t) (esp_timer_get_time());
+  // return (uint32_t)(k_cycle_get_32() / (sys_clock_hw_cycles_per_sec() / 1000000));
+  return 0;
 }
 

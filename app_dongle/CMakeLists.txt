@@ -4,8 +4,54 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(AppDongle)
 
-target_sources(app PRIVATE src/main.c)
+# QMK 모듈 CMake 파일을 포함합니다.
+# include(src/ap/modules/qmk/CMakeLists.txt)
 
+
+# 소스 파일들을 수집합니다. (비재귀적 방식)
+# ap 및 bsp, hw 폴더의 모든 C/C++ 파일을 포함합니다.
+file(GLOB SRC_FILES 
+  # ap/*.c
+  # ap/*.c
+  src/bsp/*.c
+  src/hw/driver/*.c
+  src/hw/*.c
+)
+
+# 소스 파일들을 재귀적으로 수집합니다.
+# common 및 hw 폴더 내의 모든 하위 디렉토리를 포함하여 C 파일을 찾습니다.
+file(GLOB_RECURSE SRC_FILES_RECURSE
+  src/common/*.c 
+  # hw/*.c
+)
+
+# 소스 파일들을 app 타겟에 추가합니다
+target_sources(app PRIVATE
+  src/main.c
+  ${SRC_FILES}
+  ${SRC_FILES_RECURSE}
+  # ${QMK_SRC_FILES}
+)
+
+# 프로젝트의 헤더 파일 검색 경로를 지정합니다.
+# 컴파일 시 필요한 모든 헤더 파일이 있는 디렉토리를 PUBLIC으로 추가합니다.
+target_include_directories(app PUBLIC
+  src                   
+  src/ap                     # 애플리케이션 관련 코드
+  src/ap/modules             # 애플리케이션 모듈 디렉토리
+  src/bsp                    # 보드 서포트 패키지(Board Support Package) 디렉토리
+  src/common                 # 공통 코드 디렉토리
+  src/common/core            # 코어 공통 기능
+  src/common/hw/include      # 하드웨어 관련 헤더 파일
+  src/hw                     # 하드웨어 드라이버 디렉토리
+  # src/hw/driver/usb          # USB 드라이버 디렉토리
+  src/lib                    # 라이브러리 디렉토리
+
+  ${QMK_INC_DIR}         # QMK 헤더 파일 디렉토리
+)
+
+
+#[[
 ##########################################################################################################
 # 파일 전역에서 .c 및 .cpp 파일들을 수집합니다
 file(GLOB SRC_FILES 
@@ -151,3 +197,4 @@ pico_generate_pio_header(${PRJ_NAME} ${CMAKE_CURRENT_LIST_DIR}/hw/driver/pio/ws2
 # 출력 파일의 확장자를 .elf로 설정합니다.
 set_target_properties(${PRJ_NAME} PROPERTIES SUFFIX ".elf")
 
+]]

@@ -1,14 +1,13 @@
 #include "uart.h"
 
 
-
 #ifdef _USE_HW_UART
-#include "driver/uart.h"
+// #include "driver/uart.h"
 #ifdef _USE_HW_CDC
 #include "cdc.h"
 #endif
 
-
+/*
 
 #define UART_RX_Q_BUF_LEN       512
 
@@ -210,5 +209,56 @@ uint32_t uartGetBaud(uint8_t ch)
   return uart_tbl[ch].baud;
 }
 
+*/
+
+bool uartInit(void)
+{
+  return true;
+}
+
+bool uartOpen(uint8_t ch, uint32_t baud)
+{
+  return true;
+}
+
+bool uartIsOpen(uint8_t ch)
+{
+  return false;
+}
+
+bool uartClose(uint8_t ch)
+{
+  return true;
+}
+
+uint32_t uartAvailable(uint8_t ch)
+{
+  return 0;
+}
+
+bool uartFlush(uint8_t ch)
+{
+  return true;
+}
+
+uint8_t uartRead(uint8_t ch)
+{
+  return 0;
+}
+
+uint32_t uartWrite(uint8_t ch, uint8_t *p_data, uint32_t length)
+{
+  return 0;
+}
+
+uint32_t uartPrintf(uint8_t ch, const char *fmt, ...)
+{
+  return 0;
+}
+
+uint32_t uartGetBaud(uint8_t ch)
+{
+  return 0;
+}
 
 #endif

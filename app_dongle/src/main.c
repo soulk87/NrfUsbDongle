@@ -187,6 +187,7 @@ static void send_mouse_report(void) {
 }
 
 int main(void) {
+    
     // HID 디바이스 바인딩
     hid_dev = device_get_binding("HID_0");
     if (!hid_dev) {
@@ -210,9 +211,9 @@ int main(void) {
     while (1) {
         // send_keyboard_report();
         // k_msleep(1000);
-
+        cliMain();
         // send_mouse_report();
-        k_msleep(1000);
+        k_msleep(5);
     }
     
     // apInit();

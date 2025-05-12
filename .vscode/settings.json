@@ -16,7 +16,9 @@
         "qbuffer.h": "c",
         "hw.h": "c",
         "nvs.h": "c",
-        "uart.h": "c"
+        "uart.h": "c",
+        "printk.h": "c",
+        "usbd.h": "c"
     },
     "cmake.sourceDirectory": "C:/GIT/NrfUsbDongle/app_dongle",
     "C_Cpp.errorSquiggles": "enabled",

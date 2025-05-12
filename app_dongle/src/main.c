@@ -208,14 +208,16 @@ int main(void) {
     LOG_INF("HID device ready");
     k_msleep(1000);
     hwInit();
-    while (1) {
+    while (1)
+    {
         // send_keyboard_report();
         // k_msleep(1000);
+        cliOpen(_DEF_UART1, 115200);
         cliMain();
         // send_mouse_report();
         k_msleep(5);
     }
-    
+
     // apInit();
     // apMain();
     return 0;

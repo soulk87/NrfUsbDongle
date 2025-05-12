@@ -6,209 +6,6 @@
 #include "cdc.h"
 #endif
 
-/*
-
-#define UART_RX_Q_BUF_LEN       512
-
-
-
-typedef struct
-{
-  bool is_open;
-
-  uart_port_t   port;
-  uint32_t      baud;
-  uart_config_t config;
-  QueueHandle_t queue;
-
-  uint8_t       wr_buf[UART_RX_Q_BUF_LEN];
-} uart_tbl_t;
-
-
-static uart_tbl_t uart_tbl[UART_MAX_CH];
-
-
-bool uartInit(void)
-{
-  for (int i=0; i<UART_MAX_CH; i++)
-  {
-    uart_tbl[i].is_open = false;
-  }
-
-  return true;
-}
-
-bool uartOpen(uint8_t ch, uint32_t baud)
-{
-  bool ret = false;
-
-
-  if (uartIsOpen(ch) == true && uartGetBaud(ch) == baud)
-  {
-    return true;
-  }
-
-  switch(ch)
-  {
-    case _DEF_UART1:
-      uart_tbl[ch].port = UART_NUM_0;
-      uart_tbl[ch].baud = baud;
-      uart_tbl[ch].config.baud_rate = baud;
-      uart_tbl[ch].config.data_bits = UART_DATA_8_BITS;
-      uart_tbl[ch].config.parity    = UART_PARITY_DISABLE;
-      uart_tbl[ch].config.stop_bits = UART_STOP_BITS_1;
-      uart_tbl[ch].config.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
-      uart_tbl[ch].config.source_clk = UART_SCLK_APB;
-
-
-      uart_driver_install(UART_NUM_0, UART_RX_Q_BUF_LEN*2, UART_RX_Q_BUF_LEN*2, 0, NULL, 0);
-      uart_param_config(UART_NUM_0, &uart_tbl[ch].config);
-
-      //Set UART pins (using UART0 default pins ie no changes.)
-      uart_set_pin(UART_NUM_0, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-
-
-      uart_tbl[ch].is_open = true;
-      ret = true;
-      break;
-
-    case _DEF_UART2:
-      uart_tbl[ch].is_open = true;
-      uart_tbl[ch].baud = baud;
-      ret = true;
-      break;
-  }
-
-  return ret;
-}
-
-bool uartIsOpen(uint8_t ch)
-{
-  return uart_tbl[ch].is_open;
-}
-
-bool uartClose(uint8_t ch)
-{
-  uart_tbl[ch].is_open = false;
-  return true;
-}
-
-uint32_t uartAvailable(uint8_t ch)
-{
-  uint32_t ret = 0;
-  size_t len;
-
-
-  if (uart_tbl[ch].is_open != true) return 0;
-
-  switch(ch)
-  {
-     case _DEF_UART1:
-      uart_get_buffered_data_len(uart_tbl[ch].port, &len);
-      ret = len;
-      break;
-
-    case _DEF_UART2:
-      #ifdef _USE_HW_CDC
-      ret = cdcAvailable();
-      #endif
-      break;
-  }
-
-  return ret;
-}
-
-bool uartFlush(uint8_t ch)
-{
-  uint32_t pre_time;
-
-  pre_time = millis();
-  while(uartAvailable(ch))
-  {
-    if (millis()-pre_time >= 10)
-    {
-      break;
-    }
-    uartRead(ch);
-  }
-
-  switch(ch)
-  {
-     case _DEF_UART1:
-      uart_flush(uart_tbl[ch].port);
-      break;
-  }
-
-  return true;
-}
-
-uint8_t uartRead(uint8_t ch)
-{
-  uint8_t ret = 0;
-
-  switch(ch)
-  {
-    case _DEF_UART1:
-      uart_read_bytes(uart_tbl[ch].port, &ret, 1, 10);
-      break;
-
-    case _DEF_UART2:
-      #ifdef _USE_HW_CDC
-      ret = cdcRead();
-      #endif
-      break;
-  }
-
-  return ret;
-}
-
-uint32_t uartWrite(uint8_t ch, uint8_t *p_data, uint32_t length)
-{
-  uint32_t ret = 0;
-
-  if (uart_tbl[ch].is_open != true) return 0;
-
-
-  switch(ch)
-  {
-    case _DEF_UART1:
-      ret = uart_write_bytes(uart_tbl[ch].port, (const char*)p_data, (size_t)length);
-      break;
-
-    case _DEF_UART2:
-      #ifdef _USE_HW_CDC
-      ret = cdcWrite(p_data, length);
-      #endif
-      break;
-  }
-
-  return ret;
-}
-
-uint32_t uartPrintf(uint8_t ch, const char *fmt, ...)
-{
-  char buf[256];
-  va_list args;
-  int len;
-  uint32_t ret;
-
-  va_start(args, fmt);
-  len = vsnprintf(buf, 256, fmt, args);
-
-  ret = uartWrite(ch, (uint8_t *)buf, len);
-
-  va_end(args);
-
-
-  return ret;
-}
-
-uint32_t uartGetBaud(uint8_t ch)
-{
-  return uart_tbl[ch].baud;
-}
-
-*/
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
@@ -232,6 +29,12 @@ typedef struct
   uint8_t wr_buf[UART_RX_BUF_SIZE];
   const struct device *dev;
 } uart_tbl_t;
+
+// 워크큐 관련 변수 추가
+static struct k_work usbcdc_work;
+static bool is_usbcdc_work_running = false;
+static uint8_t work_ch;
+static uint32_t work_baud;
 
 static uart_tbl_t uart_tbl[UART_MAX_CH] =
     {
@@ -274,9 +77,9 @@ bool uartInit(void)
   return true;
 }
 
-bool usbcdc_Init(uint8_t ch, uint32_t baud)
+// 원래의 usbcdc_Init 함수를 내부용으로 변경
+static bool usbcdc_Init_internal(uint8_t ch, uint32_t baud)
 {
-
   int ret;
 
   // Initialize qbuffer for UART RX
@@ -337,6 +140,38 @@ bool usbcdc_Init(uint8_t ch, uint32_t baud)
 
   /* Enable rx interrupts */
   uart_irq_rx_enable(uart_tbl[ch].dev);
+
+  uart_tbl[ch].is_open = true;
+  LOG_INF("USB CDC initialized on channel %d with baudrate %d", ch, baud);
+
+  return true;
+}
+
+// 워크큐 핸들러 함수
+static void usbcdc_work_handler(struct k_work *work)
+{
+  (void)usbcdc_Init_internal(work_ch, work_baud);
+  is_usbcdc_work_running = false;
+}
+
+// 외부에서 호출하는 usbcdc_Init 함수 수정
+bool usbcdc_Init(uint8_t ch, uint32_t baud)
+{
+  if (is_usbcdc_work_running)
+  {
+    LOG_WRN("usbcdc_Init is already running in workqueue");
+    return false;
+  }
+
+  // 워크큐 파라미터 설정
+  work_ch = ch;
+  work_baud = baud;
+
+  // 워크큐 초기화 및 제출
+  k_work_init(&usbcdc_work, usbcdc_work_handler);
+  is_usbcdc_work_running = true;
+  k_work_submit(&usbcdc_work);
+
   return true;
 }
 
@@ -356,14 +191,27 @@ bool uartOpen(uint8_t ch, uint32_t baud)
 
   if (ch == _DEF_UART1 && device_is_ready(uart_tbl[ch].dev))
   {
+
     if (uart_tbl[ch].is_open == false)
     {
+      // 워크큐가 이미 실행 중인지 확인
+      if (is_usbcdc_work_running)
+      {
+        LOG_DBG("uartOpen: USB CDC initialization is already in progress");
+        return false;
+      }
+
       if (usbcdc_Init(ch, baud) == false)
       {
         LOG_ERR("Failed to initialize UART");
         return false;
       }
+
+      // 워크큐로 초기화 중임을 알림
+      LOG_INF("USB CDC initialization queued in workqueue");
+      return false;
     }
+
     // Set baudrate if needed
     if (baud != uart_tbl[ch].baud)
     {
@@ -374,9 +222,10 @@ bool uartOpen(uint8_t ch, uint32_t baud)
         return false;
       }
       uart_tbl[ch].baud = baud;
+
+      uart_tbl[ch].is_open = true;
     }
 
-    uart_tbl[ch].is_open = true;
     return true;
   }
 

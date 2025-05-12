@@ -219,26 +219,28 @@ uint32_t uartGetBaud(uint8_t ch)
 #include <stdarg.h>
 #include "qbuffer.h"
 
-const struct device *const uart_dev = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart0));
-
 LOG_MODULE_REGISTER(uart_driver, CONFIG_UART_LOG_LEVEL);
 
 #define UART_RX_BUF_SIZE 128
-static uint8_t rx_buf[UART_RX_BUF_SIZE] = {0};
-static uint8_t uart_rx_buf[UART_RX_BUF_SIZE];
-static qbuffer_t uart_rx_qbuffer;
-
-static bool is_open[UART_MAX_CH] = {false};
-static uint32_t uart_baudrate[UART_MAX_CH] = {115200};
-
-const struct device *uart[UART_MAX_CH] = {DEVICE_DT_GET(DT_NODELABEL(uart0))};
-
 #define RECEIVE_TIMEOUT 100
+typedef struct
+{
+  bool is_open;
+  uint32_t port;
+  uint32_t baud;
+  qbuffer_t queue;
+  uint8_t wr_buf[UART_RX_BUF_SIZE];
+  const struct device *dev;
+} uart_tbl_t;
 
-static bool rx_enabled = false;
-static bool rx_throttled = false;
+static uart_tbl_t uart_tbl[UART_MAX_CH] =
+    {
+        {.is_open = false,
+         .port = _DEF_UART1,
+         .baud = 115200,
+         .dev = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart0))}};
 
-static void interrupt_handler(const struct device *dev, void *user_data)
+static void usbcdc_interrupt_handler(const struct device *dev, void *user_data)
 {
   ARG_UNUSED(user_data);
 
@@ -256,20 +258,32 @@ static void interrupt_handler(const struct device *dev, void *user_data)
         recv_len = 0;
       }
 
-      qbufferWrite(&uart_rx_qbuffer, buffer, recv_len);
+      qbufferWrite(&uart_tbl[_DEF_UART1].queue, buffer, recv_len);
     }
   }
 }
 
 bool uartInit(void)
 {
+
+  for (int i = 0; i < UART_MAX_CH; i++)
+  {
+    uart_tbl[i].is_open = false;
+  }
+
+  return true;
+}
+
+bool usbcdc_Init(uint8_t ch, uint32_t baud)
+{
+
   int ret;
 
   // Initialize qbuffer for UART RX
-  qbufferCreate(&uart_rx_qbuffer, uart_rx_buf, UART_RX_BUF_SIZE);
+  qbufferCreate(&uart_tbl[ch].queue, uart_tbl[ch].wr_buf, UART_RX_BUF_SIZE);
 
   // Check if CDC ACM device is ready
-  if (!device_is_ready(uart_dev))
+  if (!device_is_ready(uart_tbl[ch].dev))
   {
     LOG_ERR("CDC ACM device not ready");
     return false;
@@ -279,7 +293,7 @@ bool uartInit(void)
   {
     uint32_t dtr = 0U;
 
-    uart_line_ctrl_get(uart_dev, UART_LINE_CTRL_DTR, &dtr);
+    uart_line_ctrl_get(uart_tbl[ch].dev, UART_LINE_CTRL_DTR, &dtr);
     if (dtr)
     {
       break;
@@ -293,27 +307,36 @@ bool uartInit(void)
   LOG_INF("DTR set");
 
   /* They are optional, we use them to test the interrupt endpoint */
-  ret = uart_line_ctrl_set(uart_dev, UART_LINE_CTRL_DCD, 1);
+  ret = uart_line_ctrl_set(uart_tbl[ch].dev, UART_LINE_CTRL_DCD, 1);
   if (ret)
   {
     LOG_WRN("Failed to set DCD, ret code %d", ret);
     return false;
   }
 
-  ret = uart_line_ctrl_set(uart_dev, UART_LINE_CTRL_DSR, 1);
+  ret = uart_line_ctrl_set(uart_tbl[ch].dev, UART_LINE_CTRL_DSR, 1);
   if (ret)
   {
     LOG_WRN("Failed to set DSR, ret code %d", ret);
     return false;
   }
-
   /* Wait 100ms for the host to do all settings */
   k_msleep(100);
 
-  uart_irq_callback_set(uart_dev, interrupt_handler);
+  ret = uart_line_ctrl_set(uart_tbl[ch].dev, UART_LINE_CTRL_BAUD_RATE, baud);
+  if (ret)
+  {
+    LOG_ERR("Failed to set baudrate to %d", baud);
+    return false;
+  }
+  uart_tbl[ch].baud = baud;
+  /* Wait 100ms for the host to do all settings */
+  k_msleep(100);
+
+  uart_irq_callback_set(uart_tbl[ch].dev, usbcdc_interrupt_handler);
 
   /* Enable rx interrupts */
-  uart_irq_rx_enable(uart_dev);
+  uart_irq_rx_enable(uart_tbl[ch].dev);
   return true;
 }
 
@@ -326,29 +349,34 @@ bool uartOpen(uint8_t ch, uint32_t baud)
     return false;
   }
 
-  if (is_open[ch])
+  if (uart_tbl[ch].is_open == true && uart_tbl[ch].baud == baud)
   {
-    if (uart_baudrate[ch] == baud)
-    {
-      return true;
-    }
+    return true;
   }
 
-  if (ch == _DEF_UART1 && device_is_ready(uart_dev))
+  if (ch == _DEF_UART1 && device_is_ready(uart_tbl[ch].dev))
   {
-    // Set baudrate if needed
-    if (baud != uart_baudrate[ch])
+    if (uart_tbl[ch].is_open == false)
     {
-      ret = uart_line_ctrl_set(uart_dev, UART_LINE_CTRL_BAUD_RATE, baud);
+      if (usbcdc_Init(ch, baud) == false)
+      {
+        LOG_ERR("Failed to initialize UART");
+        return false;
+      }
+    }
+    // Set baudrate if needed
+    if (baud != uart_tbl[ch].baud)
+    {
+      ret = uart_line_ctrl_set(uart_tbl[ch].dev, UART_LINE_CTRL_BAUD_RATE, baud);
       if (ret)
       {
         LOG_ERR("Failed to set baudrate to %d", baud);
         return false;
       }
-      uart_baudrate[ch] = baud;
+      uart_tbl[ch].baud = baud;
     }
 
-    is_open[ch] = true;
+    uart_tbl[ch].is_open = true;
     return true;
   }
 
@@ -362,7 +390,7 @@ bool uartIsOpen(uint8_t ch)
     return false;
   }
 
-  return is_open[ch];
+  return uart_tbl[ch].is_open;
 }
 
 bool uartClose(uint8_t ch)
@@ -372,20 +400,20 @@ bool uartClose(uint8_t ch)
     return false;
   }
 
-  is_open[ch] = false;
+  uart_tbl[ch].is_open = false;
   return true;
 }
 
 uint32_t uartAvailable(uint8_t ch)
 {
-  if (ch >= UART_MAX_CH || !is_open[ch])
+  if (ch >= UART_MAX_CH || !uart_tbl[ch].is_open)
   {
     return 0;
   }
 
   if (ch == _DEF_UART1)
   {
-    return qbufferAvailable(&uart_rx_qbuffer);
+    return qbufferAvailable(&uart_tbl[ch].queue);
   }
 
   return 0;
@@ -393,14 +421,14 @@ uint32_t uartAvailable(uint8_t ch)
 
 bool uartFlush(uint8_t ch)
 {
-  if (ch >= UART_MAX_CH || !is_open[ch])
+  if (ch >= UART_MAX_CH || !uart_tbl[ch].is_open)
   {
     return false;
   }
 
   if (ch == _DEF_UART1)
   {
-    qbufferFlush(&uart_rx_qbuffer);
+    qbufferFlush(&uart_tbl[ch].queue);
     return true;
   }
 
@@ -411,16 +439,16 @@ uint8_t uartRead(uint8_t ch)
 {
   uint8_t ret = 0;
 
-  if (ch >= UART_MAX_CH || !is_open[ch])
+  if (ch >= UART_MAX_CH || !uart_tbl[ch].is_open)
   {
     return 0;
   }
 
   if (ch == _DEF_UART1)
   {
-    if (qbufferAvailable(&uart_rx_qbuffer) > 0)
+    if (qbufferAvailable(&uart_tbl[ch].queue) > 0)
     {
-      qbufferRead(&uart_rx_qbuffer, &ret, 1);
+      qbufferRead(&uart_tbl[ch].queue, &ret, 1);
     }
   }
 
@@ -430,14 +458,14 @@ uint8_t uartRead(uint8_t ch)
 uint32_t uartWrite(uint8_t ch, uint8_t *p_data, uint32_t length)
 {
 
-  if (ch >= UART_MAX_CH || !is_open[ch] || p_data == NULL)
+  if (ch >= UART_MAX_CH || !uart_tbl[ch].is_open || p_data == NULL)
   {
     return 0;
   }
 
-  if (ch == _DEF_UART1 && device_is_ready(uart_dev))
+  if (ch == _DEF_UART1 && device_is_ready(uart_tbl[ch].dev))
   {
-    uart_fifo_fill(uart_dev, p_data, length);
+    uart_fifo_fill(uart_tbl[ch].dev, p_data, length);
     return length;
   }
 
@@ -473,6 +501,6 @@ uint32_t uartGetBaud(uint8_t ch)
     return 0;
   }
 
-  return uart_baudrate[ch];
+  return uart_tbl[ch].baud;
 }
 #endif

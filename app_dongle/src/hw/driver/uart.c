@@ -30,11 +30,18 @@ typedef struct
   const struct device *dev;
 } uart_tbl_t;
 
-// 워크큐 관련 변수 추가
-static struct k_work usbcdc_work;
-static bool is_usbcdc_work_running = false;
-static uint8_t work_ch;
-static uint32_t work_baud;
+// 스레드 관련 변수 추가
+#define THREAD_STACK_SIZE 1024
+#define THREAD_PRIORITY 5
+
+static K_THREAD_STACK_DEFINE(usbcdc_thread_stack, THREAD_STACK_SIZE);
+static struct k_thread usbcdc_thread_data;
+static k_tid_t usbcdc_thread_id = NULL;
+static struct k_sem usbcdc_sem;
+
+static bool is_thread_running = false;
+static uint8_t thread_ch;
+static uint32_t thread_baud;
 
 static uart_tbl_t uart_tbl[UART_MAX_CH] =
     {
@@ -147,31 +154,64 @@ static bool usbcdc_Init_internal(uint8_t ch, uint32_t baud)
   return true;
 }
 
-// 워크큐 핸들러 함수
-static void usbcdc_work_handler(struct k_work *work)
+// 스레드 함수
+static void usbcdc_thread_func(void *arg1, void *arg2, void *arg3)
 {
-  (void)usbcdc_Init_internal(work_ch, work_baud);
-  is_usbcdc_work_running = false;
+  ARG_UNUSED(arg2);
+  ARG_UNUSED(arg3);
+  
+  uint8_t ch = thread_ch;
+  uint32_t baud = thread_baud;
+  
+  LOG_INF("USB CDC thread started for channel %d with baud %d", ch, baud);
+  
+  // 초기화 수행
+  (void)usbcdc_Init_internal(ch, baud);
+  
+  // 초기화 완료 알림
+  k_sem_give(&usbcdc_sem);
+  
+  // 스레드 종료
+  is_thread_running = false;
 }
 
 // 외부에서 호출하는 usbcdc_Init 함수 수정
 bool usbcdc_Init(uint8_t ch, uint32_t baud)
 {
-  if (is_usbcdc_work_running)
+  if (is_thread_running)
   {
-    LOG_WRN("usbcdc_Init is already running in workqueue");
+    LOG_WRN("usbcdc_Init is already running in thread");
     return false;
   }
-
-  // 워크큐 파라미터 설정
-  work_ch = ch;
-  work_baud = baud;
-
-  // 워크큐 초기화 및 제출
-  k_work_init(&usbcdc_work, usbcdc_work_handler);
-  is_usbcdc_work_running = true;
-  k_work_submit(&usbcdc_work);
-
+  
+  // 세마포어 초기화 (처음 호출시에만)
+  static bool sem_initialized = false;
+  if (!sem_initialized)
+  {
+    k_sem_init(&usbcdc_sem, 0, 1);
+    sem_initialized = true;
+  }
+  
+  // 스레드 파라미터 설정
+  thread_ch = ch;
+  thread_baud = baud;
+  is_thread_running = true;
+  
+  // 스레드 생성 및 실행
+  usbcdc_thread_id = k_thread_create(&usbcdc_thread_data, usbcdc_thread_stack,
+                                     K_THREAD_STACK_SIZEOF(usbcdc_thread_stack),
+                                     usbcdc_thread_func,
+                                     NULL, NULL, NULL,
+                                     THREAD_PRIORITY, 0, K_NO_WAIT);
+  if (usbcdc_thread_id == NULL)
+  {
+    LOG_ERR("Failed to create USB CDC thread");
+    is_thread_running = false;
+    return false;
+  }
+  
+  k_thread_name_set(usbcdc_thread_id, "usbcdc_thread");
+  
   return true;
 }
 
@@ -194,8 +234,8 @@ bool uartOpen(uint8_t ch, uint32_t baud)
 
     if (uart_tbl[ch].is_open == false)
     {
-      // 워크큐가 이미 실행 중인지 확인
-      if (is_usbcdc_work_running)
+      // 스레드가 이미 실행 중인지 확인
+      if (is_thread_running)
       {
         LOG_DBG("uartOpen: USB CDC initialization is already in progress");
         return false;
@@ -207,8 +247,8 @@ bool uartOpen(uint8_t ch, uint32_t baud)
         return false;
       }
 
-      // 워크큐로 초기화 중임을 알림
-      LOG_INF("USB CDC initialization queued in workqueue");
+      // 스레드로 초기화 중임을 알림
+      LOG_INF("USB CDC initialization started in thread");
       return false;
     }
 

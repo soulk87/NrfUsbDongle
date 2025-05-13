@@ -5,6 +5,7 @@
 #include <zephyr/usb/class/usb_hid.h>
 #include <zephyr/logging/log.h>
 #include "hw.h"
+#include "ap.h"
 
 LOG_MODULE_REGISTER(main);
 
@@ -208,14 +209,17 @@ int main(void) {
     LOG_INF("HID device ready");
     k_msleep(1000);
     hwInit();
+    apInit();
     while (1)
     {
         // send_keyboard_report();
         // k_msleep(1000);
-        cliOpen(_DEF_UART1, 115200);
-        cliMain();
-        // send_mouse_report();
-        k_msleep(5);
+        // cliOpen(_DEF_UART1, 115200);
+        // cliMain();
+        // // send_mouse_report();
+        // k_msleep(5);
+
+        apMain();
     }
 
     // apInit();

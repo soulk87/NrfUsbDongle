@@ -18,7 +18,10 @@
         "nvs.h": "c",
         "uart.h": "c",
         "printk.h": "c",
-        "usbd.h": "c"
+        "usbd.h": "c",
+        "ap_def.h": "c",
+        "hw_def.h": "c",
+        "device.h": "c"
     },
     "cmake.sourceDirectory": "C:/GIT/NrfUsbDongle/app_dongle",
     "C_Cpp.errorSquiggles": "enabled",

@@ -11,8 +11,7 @@ project(AppDongle)
 # 소스 파일들을 수집합니다. (비재귀적 방식)
 # ap 및 bsp, hw 폴더의 모든 C/C++ 파일을 포함합니다.
 file(GLOB SRC_FILES 
-  # ap/*.c
-  # ap/*.c
+  src/ap/*.c
   src/bsp/*.c
   src/hw/driver/*.c
   src/hw/*.c

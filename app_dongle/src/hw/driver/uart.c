@@ -237,8 +237,9 @@ bool uartOpen(uint8_t ch, uint32_t baud)
       // 스레드가 이미 실행 중인지 확인
       if (is_thread_running)
       {
-        LOG_DBG("uartOpen: USB CDC initialization is already in progress");
-        return false;
+        k_sem_take(&usbcdc_sem, K_FOREVER);
+        LOG_INF("USB CDC initialization completed in thread");
+        return true;
       }
 
       if (usbcdc_Init(ch, baud) == false)

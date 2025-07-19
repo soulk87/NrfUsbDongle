@@ -21,9 +21,10 @@
         "usbd.h": "c",
         "ap_def.h": "c",
         "hw_def.h": "c",
-        "device.h": "c"
+        "device.h": "c",
+        "usbd_hid.h": "c"
     },
-    "cmake.sourceDirectory": "C:/GIT/NrfUsbDongle/app_dongle",
+    // "cmake.sourceDirectory": "C:/GIT/NrfUsbDongle/app_dongle",
     "C_Cpp.errorSquiggles": "enabled",
     "nrf-connect.debugging.bindings": {
         "${workspaceFolder}/app_dongle/build": "Launch build"

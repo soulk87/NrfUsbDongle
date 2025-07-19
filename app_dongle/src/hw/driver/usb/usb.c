@@ -4,8 +4,6 @@
 #ifdef _USE_HW_USB
 #include "usb_hid/usbd_hid.h"
 #include "cli.h"
-#include "tinyusb.h"
-#include "class/hid/hid_device.h"
 
 
 static bool is_init = false;

@@ -15,6 +15,8 @@ file(GLOB SRC_FILES
   src/bsp/*.c
   src/hw/driver/*.c
   src/hw/*.c
+  src/hw/driver/usb/*.c
+  # src/hw/driver/usb/usb_hid/*.c
 )
 
 # 소스 파일들을 재귀적으로 수집합니다.
@@ -23,7 +25,6 @@ file(GLOB_RECURSE SRC_FILES_RECURSE
   src/common/*.c 
   # hw/*.c
 )
-
 # 소스 파일들을 app 타겟에 추가합니다
 target_sources(app PRIVATE
   src/main.c
@@ -43,7 +44,8 @@ target_include_directories(app PUBLIC
   src/common/core            # 코어 공통 기능
   src/common/hw/include      # 하드웨어 관련 헤더 파일
   src/hw                     # 하드웨어 드라이버 디렉토리
-  # src/hw/driver/usb          # USB 드라이버 디렉토리
+  src/hw/driver/usb          # USB 드라이버 디렉토리
+  src/hw/driver/usb/usbd_hid # USB 드라이버 디렉토리
   src/lib                    # 라이브러리 디렉토리
 
   ${QMK_INC_DIR}         # QMK 헤더 파일 디렉토리

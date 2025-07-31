@@ -15,7 +15,7 @@ bool hwInit(void)
 
   uartInit();
   uartOpen(_DEF_UART1, 115200);
-  cliOpen(_DEF_UART1, 115200);
+  // cliOpen(_DEF_UART1, 115200);
 
   // logOpen(HW_LOG_CH, 115200);
 

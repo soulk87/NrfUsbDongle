@@ -47,7 +47,7 @@ static const uint8_t hid_report_desc[] = {
     0x81, 0x00,       // Input (Data, Array)
     0xC0,             // End Collection
 
-    // ----- Mouse Report Descriptor -----
+    // // ----- Mouse Report Descriptor -----
     0x05, 0x01,       // Usage Page (Generic Desktop Controls)
     0x09, 0x02,       // Usage (Mouse)
     0xA1, 0x01,       // Collection (Application)
@@ -93,11 +93,12 @@ static const uint8_t hid_report_desc[] = {
     0x15, 0x00,       // Logical Minimum (0)
     0x26, 0xFF, 0x00, // Logical Maximum (255)
     0x75, 0x08,       // Report Size: 8 bits
-    0x95, 0x40,       // Report Count: 64 bytes
 
+    0x95, 0x40,       // Report Count: 64 bytes (Input)
     0x09, 0x62,       // Usage (Vendor IN report)
     0x81, 0x02,       // Input (Data, Variable, Absolute)
 
+    0x95, 0x40,       // Report Count: 64 bytes (Output)
     0x09, 0x63,       // Usage (Vendor OUT report)
     0x91, 0x02,       // Output (Data, Variable, Absolute)
 
@@ -116,15 +117,37 @@ static void process_via_data(const uint8_t *data, size_t len) {
 }
 
 // HID set_report 콜백
-static int hid_set_report_cb(const struct device *dev, uint8_t report_id,
-                             uint8_t report_type, const uint8_t *report, size_t report_len) {
+static int hid_set_report_cb(const struct device *dev,
+                             struct usb_setup_packet *setup, int32_t *len,
+                             uint8_t **data) {
+    uint8_t report_id = (*data)[0];
+    size_t report_len = *len;
+
     if (report_id == REPORT_ID_VIA) {
         LOG_INF("VIA report received");
-        process_via_data(report, report_len);
+        process_via_data(*data, report_len);
     } else {
         LOG_WRN("Unhandled report ID: 0x%02X", report_id);
     }
     return 0;
+}
+
+static int hid_get_report_cb(const struct device *dev,
+                             struct usb_setup_packet *setup, int32_t *len,
+                             uint8_t **data) {
+    uint8_t report_id = setup->wValue & 0xFF; // Report ID
+    LOG_INF("Get report request for ID: 0x%02X", report_id);
+
+    if (report_id == REPORT_ID_VIA) {
+        // VIA report 요청 처리
+        static uint8_t via_report[64] = {0}; // 예시로 64바이트 VIA 리포트
+        *data = via_report;
+        *len = sizeof(via_report);
+        LOG_INF("Returning VIA report");
+    } else {
+        LOG_WRN("Unhandled report ID: 0x%02X", report_id);
+        return -ENOTSUP; // 지원하지 않는 리포트 ID
+    } 
 }
 
 // USB 상태 콜백
@@ -147,9 +170,15 @@ static void hid_ready_cb(const struct device *dev) {
     LOG_INF("HID IN ready");
 }
 
+static void hid_out_ready_cb(const struct device *dev) {
+    LOG_INF("HID OUT ready");
+}
+
 static const struct hid_ops ops = {
     .int_in_ready = hid_ready_cb,
+    .int_out_ready = hid_out_ready_cb,
     .set_report = hid_set_report_cb, // set_report 콜백 추가
+    .get_report = hid_get_report_cb, // get_report 콜백 추가
 };
 
 static void send_keyboard_report(void) {

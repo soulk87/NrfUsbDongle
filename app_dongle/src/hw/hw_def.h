@@ -34,7 +34,8 @@
 // #define _USE_HW_BLE
 // #define _USE_HW_BLE_HID
 // #define _USE_HW_BATTERY
-
+#define _USE_HW_CDC
+#define      HW_CDC_RX_BUFFER_SIZE      128
 
 #define _USE_HW_UART
 #define      HW_UART_MAX_CH         1

@@ -3,7 +3,9 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "C:\\GIT\\NrfUsbDongle\\app_dongle\\src\\common\\hw\\include",
+                "C:/ncs/v3.0.0/zephyr/include"
             ],
             "defines": [
                 "_DEBUG",

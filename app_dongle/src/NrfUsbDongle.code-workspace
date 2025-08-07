@@ -37,7 +37,11 @@
 			"usb_device.h": "c",
 			"array": "c",
 			"string_view": "c",
-			"initializer_list": "c"
+			"initializer_list": "c",
+			"usb_hid.h": "c",
+			"cli.h": "c",
+			"usb.h": "c",
+			"usb_descriptor.h": "c"
 		},
 		"nrf-connect.debugging.bindings": {
 			"${workspaceFolder}/app_dongle/build": "Launch build"

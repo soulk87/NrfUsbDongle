@@ -69,8 +69,6 @@ bool uartClose(uint8_t ch)
 uint32_t uartAvailable(uint8_t ch)
 {
   uint32_t ret = 0;
-  size_t len;
-
 
   if (uart_tbl[ch].is_open != true) return 0;
 

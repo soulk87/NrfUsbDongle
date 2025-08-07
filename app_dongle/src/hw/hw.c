@@ -9,6 +9,7 @@ bool hwInit(void)
 {
   bspInit();
 
+  
 
   cliInit();
   // logInit();
@@ -19,7 +20,7 @@ bool hwInit(void)
 
   // logOpen(HW_LOG_CH, 115200);
 
-  // bootMsg();
+  bootMsg();
   // logPrintf("\r\n[ Firmware Begin... ]\r\n");
   // logPrintf("Booting..Name \t\t: %s\r\n", _DEF_BOARD_NAME);
   // logPrintf("Booting..Ver  \t\t: %s\r\n", _DEF_FIRMWATRE_VERSION);  
@@ -36,7 +37,7 @@ bool hwInit(void)
   // keysInit();
 
   // delay(100);
-  // usbInit();
+  usbInit();
   
   // delay(100);
   // bleInit();

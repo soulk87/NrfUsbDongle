@@ -19,7 +19,7 @@ extern "C" {
 // #include "keys.h"
 // #include "adc.h"
 // #include "battery.h"
-// #include "driver/usb/usb.h"
+#include "driver/usb/usb.h"
 // #include "driver/ble/ble.h"
 
 bool hwInit(void);

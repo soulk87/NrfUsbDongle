@@ -1,21 +1,21 @@
 #include "usbd_hid.h"
 
+#ifdef _USE_HW_USB
 
-#define KBD_NAME                    "BARAM-45K-ESP32"
+#define KBD_NAME "BARAM-45K-ESP32"
 
-#define USB_VID                     0x0483
-#define USB_PID                     0x5300
+#define USB_VID 0x0483
+#define USB_PID 0x5300
 
-#define USB_HID_LOG                 0
-
+#define USB_HID_LOG 0
 
 #if USB_HID_LOG == 1
-#define logDebug(...)                              \
-  {                                                \
-    logPrintf(__VA_ARGS__);                        \
+#define logDebug(...)       \
+  {                         \
+    logPrintf(__VA_ARGS__); \
   }
 #else
-#define logDebug(...) 
+#define logDebug(...)
 #endif
 
 #include "cli.h"
@@ -23,258 +23,273 @@
 #include "keys.h"
 #include "qbuffer.h"
 
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/usb/usbd.h>
+#include <zephyr/usb/usb_device.h>
+#include <zephyr/usb/class/usb_hid.h>
+#include <zephyr/logging/log.h>
+#include "driver/usb/usb.h"
+
+LOG_MODULE_REGISTER(my_usb_hid);
+
+#define REPORT_ID_KEYBOARD 0x01
+#define REPORT_ID_MOUSE 0x02
+#define REPORT_ID_VIA 0x03
+
+#define THREAD_STACK_SIZE 1024
+#define THREAD_PRIORITY 5
+
+static K_THREAD_STACK_DEFINE(usb_thread_stack, THREAD_STACK_SIZE);
+static struct k_thread usb_thread_data;
+static void hidThread(void *arg1, void *arg2, void *arg3);
 
 
-// #include "tinyusb.h"
-#include "class/hid/hid_device.h"
+static const struct device *hid_dev;
+static const struct device *hid_dev_via;
 
+// HID Report Descriptor (Keyboard + Mouse)
+static const uint8_t hid_report_desc[] = {
+    // ----- Keyboard Report Descriptor -----
+    0x05, 0x01, // Usage Page (Generic Desktop Controls)
+    0x09, 0x06, // Usage (Keyboard)
+    0xA1, 0x01, // Collection (Application)
 
-enum
-{
-  ITF_ID_KEYBOARD = 0,
-  ITF_ID_VIA,
-  ITF_ID_COUNT
+    0x85, REPORT_ID_KEYBOARD, // Report ID = 0x01
+
+    0x05, 0x07, // Usage Page (Keyboard/Keypad)
+    0x19, 0xE0, // Usage Minimum (Left Control)
+    0x29, 0xE7, // Usage Maximum (Right GUI)
+    0x15, 0x00, // Logical Minimum (0)
+    0x25, 0x01, // Logical Maximum (1)
+    0x75, 0x01, // Report Size: 1 bit per modifier key
+    0x95, 0x08, // Report Count: 8 modifier keys
+    0x81, 0x02, // Input (Data, Variable, Absolute)
+
+    0x95, 0x01, // Report Count: 1 (reserved)
+    0x75, 0x08, // Report Size: 8 bits
+    0x81, 0x03, // Input (Constant)
+
+    0x95, 0x06, // Report Count: 6 keys
+    0x75, 0x08, // Report Size: 8 bits
+    0x15, 0x00, // Logical Minimum (0)
+    0x25, 0x65, // Logical Maximum (101)
+    0x05, 0x07, // Usage Page (Keyboard/Keypad)
+    0x19, 0x00, // Usage Minimum (0)
+    0x29, 0x65, // Usage Maximum (101)
+    0x81, 0x00, // Input (Data, Array)
+    0xC0,       // End Collection
+
+    // // ----- Mouse Report Descriptor -----
+    0x05, 0x01, // Usage Page (Generic Desktop Controls)
+    0x09, 0x02, // Usage (Mouse)
+    0xA1, 0x01, // Collection (Application)
+
+    0x85, REPORT_ID_MOUSE, // Report ID = 0x02
+
+    0x09, 0x01, // Usage (Pointer)
+    0xA1, 0x00, // Collection (Physical)
+
+    0x05, 0x09, // Usage Page (Buttons)
+    0x19, 0x01, // Usage Minimum (Button 1)
+    0x29, 0x03, // Usage Maximum (Button 3)
+    0x15, 0x00, // Logical Minimum (0)
+    0x25, 0x01, // Logical Maximum (1)
+    0x95, 0x03, // Report Count: 3 buttons
+    0x75, 0x01, // Report Size: 1 bit
+    0x81, 0x02, // Input (Data, Variable, Absolute)
+
+    0x95, 0x01, // Report Count: 1 (padding)
+    0x75, 0x05, // Report Size: 5 bits
+    0x81, 0x03, // Input (Constant)
+
+    0x05, 0x01, // Usage Page (Generic Desktop Controls)
+    0x09, 0x30, // Usage (X)
+    0x09, 0x31, // Usage (Y)
+    0x09, 0x38, // Usage (Wheel)
+    0x15, 0x81, // Logical Minimum (-127)
+    0x25, 0x7F, // Logical Maximum (127)
+    0x75, 0x08, // Report Size: 8 bits
+    0x95, 0x03, // Report Count: 3 (X, Y, Wheel)
+    0x81, 0x06, // Input (Data, Variable, Relative)
+
+    0xC0, // End Physical Collection
+    0xC0, // End Application Collection
 };
 
-enum
-{
-  REPORT_ID_KEYBOARD = 1,
-  REPORT_ID_MOUSE,
-  REPORT_ID_COUNT
+// HID Report Descriptor (VIA)
+static const uint8_t hid_report_desc_via[] = {
+    //
+    0x06, 0x60, 0xFF, // Usage Page (Vendor Defined)
+    0x09, 0x61,       // Usage (Vendor Defined)
+    0xA1, 0x01,       // Collection (Application)
+    // Data to host
+    0x09, 0x62,       //   Usage (Vendor Defined)
+    0x15, 0x00,       //   Logical Minimum (0)
+    0x26, 0xFF, 0x00, //   Logical Maximum (255)
+    0x95, 64,         //   Report Count
+    0x75, 0x08,       //   Report Size (8)
+    0x81, 0x02,       //   Input (Data, Variable, Absolute)
+    // Data from host
+    0x09, 0x63,       //   Usage (Vendor Defined)
+    0x15, 0x00,       //   Logical Minimum (0)
+    0x26, 0xFF, 0x00, //   Logical Maximum (255)
+    0x95, 64,         //   Report Count
+    0x75, 0x08,       //   Report Size (8)
+    0x91, 0x02,       //   Output (Data, Variable, Absolute)
+    0xC0              // End Collection
 };
 
-
-#define TUSB_DESC_TOTAL_LEN      (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN + TUD_HID_INOUT_DESC_LEN)
-#define HID_KEYBOARD_REPORT_SIZE (HW_KEYS_PRESS_MAX + 2U)
+#define HID_KEYBOARD_REPORT_SIZE 64U
 
 typedef struct
 {
-  uint8_t  buf[HID_KEYBOARD_REPORT_SIZE];
+  uint8_t buf[HID_KEYBOARD_REPORT_SIZE];
 } report_info_t;
-
-
-//--------------------------------------------------------------------+
-// Device Descriptors
-//--------------------------------------------------------------------+
-tusb_desc_device_t const desc_device =
-{
-  .bLength            = sizeof(tusb_desc_device_t),
-  .bDescriptorType    = TUSB_DESC_DEVICE,
-  .bcdUSB             = 0x0200,
-
-  .bDeviceClass       = 0x00,
-  .bDeviceSubClass    = 0x00,
-  .bDeviceProtocol    = 0x00,
-  .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
-
-  .idVendor           = USB_VID,
-  .idProduct          = USB_PID,
-  .bcdDevice          = 0x0100,
-
-  .iManufacturer      = 0x01,
-  .iProduct           = 0x02,
-  .iSerialNumber      = 0x03,
-
-  .bNumConfigurations = 0x01
-};
-
-//--------------------------------------------------------------------+
-// HID Report Descriptor
-//--------------------------------------------------------------------+
-static const uint8_t hid_keyboard_descriptor[] =
-{
-  TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(REPORT_ID_KEYBOARD)),
-  TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(REPORT_ID_MOUSE)),
-};
-
-static const uint8_t hid_via_descriptor[HID_KEYBOARD_VIA_REPORT_DESC_SIZE] = 
-{
-  //
-  0x06, 0x60, 0xFF, // Usage Page (Vendor Defined)
-  0x09, 0x61,       // Usage (Vendor Defined)
-  0xA1, 0x01,       // Collection (Application)
-  // Data to host
-  0x09, 0x62,       //   Usage (Vendor Defined)
-  0x15, 0x00,       //   Logical Minimum (0)
-  0x26, 0xFF, 0x00, //   Logical Maximum (255)
-  0x95, 32,         //   Report Count
-  0x75, 0x08,       //   Report Size (8)
-  0x81, 0x02,       //   Input (Data, Variable, Absolute)
-  // Data from host
-  0x09, 0x63,       //   Usage (Vendor Defined)
-  0x15, 0x00,       //   Logical Minimum (0)
-  0x26, 0xFF, 0x00, //   Logical Maximum (255)
-  0x95, 32,         //   Report Count
-  0x75, 0x08,       //   Report Size (8)
-  0x91, 0x02,       //   Output (Data, Variable, Absolute)
-  0xC0              // End Collection
-};
-
-
-const char *hid_string_descriptor[5] =
-{
-  (char[]){0x09, 0x04},     // 0: is supported language is English (0x0409)
-  "BARAM",                  // 1: Manufacturer
-  KBD_NAME,                 // 2: Product
-  "123456",                 // 3: Serials, should use chip ID
-  "HID Keyboard",           // 4: HID
-};
-
-static const uint8_t hid_configuration_descriptor[] = {
-
-  TUD_CONFIG_DESCRIPTOR(1,  // Configuration number,
-                        2,  // interface count
-                        0,  // string index
-                        TUSB_DESC_TOTAL_LEN,                // total length
-                        TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, // attribute
-                        500                                 // power in mA
-                        ),
-
-  TUD_HID_DESCRIPTOR(0,                                     // Interface number
-                     0,                                     // string index
-                     HID_ITF_PROTOCOL_KEYBOARD,             // boot protocol
-                     sizeof(hid_keyboard_descriptor),       // report descriptor len
-                     HID_EPIN_ADDR,                         // EP In address
-                     HID_EPIN_SIZE,                         // size
-                     1                                      // polling inerval
-                     ),
-
-  TUD_HID_INOUT_DESCRIPTOR(1,                               // Interface number
-                           0,                               // string index
-                           HID_ITF_PROTOCOL_NONE,           // protocol
-                           sizeof(hid_via_descriptor),      // report descriptor len
-                           HID_VIA_EP_OUT,                  // EP Out Address
-                           HID_VIA_EP_IN,                   // EP In Address
-                           64,                              // size
-                           10                               // polling interval
-                           ),
-};
-
 
 static void (*via_hid_receive_func)(uint8_t *data, uint8_t length) = NULL;
 static uint8_t via_hid_usb_report[32];
 
-static qbuffer_t     report_q;
+static qbuffer_t report_q;
 static report_info_t report_buf[128];
-
 
 #ifdef _USE_HW_CLI
 static void cliCmd(cli_args_t *args);
 #endif
-static void hidThread(void *args);
 
-
-
-
-
-bool usbHidInit(void)
+// HID set_report 콜백
+static int hid_set_report_cb(const struct device *dev,
+                             struct usb_setup_packet *setup, int32_t *len,
+                             uint8_t **data)
 {
-  const tinyusb_config_t tusb_cfg = {
-    .device_descriptor        = &desc_device,
-    .string_descriptor        = hid_string_descriptor,
-    .string_descriptor_count  = sizeof(hid_string_descriptor) / sizeof(hid_string_descriptor[0]),
-    .external_phy             = false,
-    .configuration_descriptor = hid_configuration_descriptor,
-    .self_powered             = false,
-    .vbus_monitor_io          = -1,
-  };
-  bool ret = true;
-
-  qbufferCreateBySize(&report_q, (uint8_t *)report_buf, sizeof(report_info_t), 128); 
-
-  tinyusb_driver_install(&tusb_cfg);
-
-
-  if (xTaskCreate(hidThread, "hidThread", _HW_DEF_RTOS_THREAD_MEM_HID, NULL, _HW_DEF_RTOS_THREAD_PRI_HID, NULL) != pdPASS)
-  {
-    logPrintf("[NG] hidThread()\n");   
-    ret = false;
-  }    
-
-#ifdef _USE_HW_CLI
-  cliAdd("usbhid", cliCmd);
-#endif  
-  return ret;
-}
-
-uint8_t const *tud_hid_descriptor_report_cb(uint8_t itf)
-{
-  uint8_t const *p_ret;
-
-  logPrintf("tud_hid_descriptor_report_cb(%d)\n", itf);
-
-  switch(itf)
-  {
-    case ITF_ID_VIA:
-      p_ret = hid_via_descriptor;
-      break;
-
-    default:
-      p_ret = hid_keyboard_descriptor;
-      break;
-  }
-  
-  return p_ret;
-}
-
-uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t *buffer, uint16_t reqlen)
-{
-  (void)itf;
-  (void)report_id;
-  (void)report_type;
-  (void)buffer;
-  (void)reqlen;
-
-  logDebug("tud_hid_get_report_cb()\n");
-  logDebug("  itf         : %d\n", itf);
-  logDebug("  report_id   : %d\n", report_id);
-  logDebug("  report_type : %d\n", (int)report_type);
-  logDebug("  reqlen      : %d\n", (int)reqlen);
 
   return 0;
 }
 
-void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t const *buffer, uint16_t bufsize)
+static int hid_get_report_cb(const struct device *dev,
+                             struct usb_setup_packet *setup, int32_t *len,
+                             uint8_t **data)
 {
-  (void) itf;
-  (void) report_id;
-  (void) report_type;
 
-  logDebug("tud_hid_set_report_cb()\n");
-  logDebug("  itf         : %d\n", itf);
-  logDebug("  report_id   : %d\n", report_id);
-  logDebug("  report_type : %d\n", (int)report_type);
-  logDebug("  reqlen      : %d\n", (int)bufsize);
+  return 0;
+}
 
-  switch(itf)
+static uint8_t rx_report[64] = {0};
+static void hid_out_ready_cb(const struct device *dev)
+{
+  LOG_DBG("HID Interrupt OUT endpoint ready");
+  hid_int_ep_read(hid_dev_via, rx_report, sizeof(rx_report), NULL);
+  LOG_HEXDUMP_DBG(rx_report, sizeof(rx_report), "HID Interrupt OUT report");
+
+    //   memcpy(via_hid_usb_report, buffer, HID_VIA_EP_SIZE);
+    // if (via_hid_receive_func != NULL)
+    // {
+    //   via_hid_receive_func(via_hid_usb_report, HID_VIA_EP_SIZE);
+    // }
+    // tud_hid_n_report(itf, report_id, via_hid_usb_report, HID_VIA_EP_SIZE);
+}
+
+static const struct hid_ops hid_ops = {
+    .set_report = hid_set_report_cb, // set_report 콜백 추가
+    .get_report = hid_get_report_cb, // get_report 콜백 추가
+};
+
+static const struct hid_ops via_ops = {
+    .int_out_ready = hid_out_ready_cb,
+    .set_report = hid_set_report_cb, // set_report 콜백 추가
+    .get_report = hid_get_report_cb, // get_report 콜백 추가
+};
+
+static void send_keyboard_report(void)
+{
+  uint8_t report[] = {
+      REPORT_ID_KEYBOARD, // Report ID
+      0x00,               // Modifier
+      0x00,               // Reserved
+      0x04,               // Keycode: 'a'
+      0x00, 0x00, 0x00, 0x00, 0x00};
+  int ret = usb_write(0x81, report, sizeof(report), NULL); // IN endpoint 0x81 (default for HID)
+  if (ret < 0)
   {
-    case ITF_ID_KEYBOARD:
-      break;
+    LOG_ERR("Failed to send keyboard report: %d", ret);
+  }
+  k_msleep(50);
 
-    case ITF_ID_VIA:
-      memcpy(via_hid_usb_report, buffer, HID_VIA_EP_SIZE);
-      if (via_hid_receive_func != NULL)
-      {
-        via_hid_receive_func(via_hid_usb_report, HID_VIA_EP_SIZE);
-      }
-      tud_hid_n_report(itf, report_id, via_hid_usb_report, HID_VIA_EP_SIZE);
-      break;
+  report[3] = 0x00; // Key release
+  ret = usb_write(0x81, report, sizeof(report), NULL);
+  if (ret < 0)
+  {
+    LOG_ERR("Failed to send keyboard release: %d", ret);
   }
 }
 
-// Invoked when sent REPORT successfully to host
-// Application can use this to send the next report
-// Note: For composite reports, report[0] is report ID
-void tud_hid_report_complete_cb(uint8_t itf, uint8_t const* report, uint16_t len)
+static void send_mouse_report(void)
 {
-  (void) itf;
-  (void) report;
-  (void) len;
+  uint8_t report[] = {
+      REPORT_ID_MOUSE, // Report ID
+      0x00,            // Buttons
+      0x01,            // X movement
+      0x00,            // Y movement
+      0x00             // Wheel
+  };
+  int ret = hid_int_ep_write(hid_dev, report, sizeof(report), NULL);
+  if (ret < 0)
+  {
+    LOG_ERR("Failed to send mouse report: %d", ret);
+  }
+}
 
-  // logPrintf("tud_hid_report_complete_cb()\n");
-  // logPrintf("  itf         : %d\n", itf);
-  // logPrintf("  len         : %d\n", (int)len);                              
-}                              
+bool usbHidInit(void)
+{
+  bool ret = true;
+
+  // HID 디바이스 바인딩
+  hid_dev = device_get_binding("HID_0");
+  if (!hid_dev)
+  {
+    LOG_ERR("Failed to get HID device binding");
+    return -1;
+  }
+
+  // HID 디스크립터 등록 및 초기화
+  usb_hid_register_device(hid_dev, hid_report_desc, sizeof(hid_report_desc), &hid_ops);
+
+  ret = usb_hid_init(hid_dev);
+  if (ret != 0)
+  {
+    LOG_ERR("Failed to initialize HID device: %d", ret);
+    return -1;
+  }
+
+  // 두 번째 HID 디바이스 바인딩
+  hid_dev_via = device_get_binding("HID_1");
+  if (!hid_dev_via)
+  {
+    LOG_ERR("Failed to get second HID device binding");
+    return -1;
+  }
+
+  // 두 번째 HID 디스크립터 등록 및 초기화
+  usb_hid_register_device(hid_dev_via, hid_report_desc_via, sizeof(hid_report_desc_via), &via_ops);
+
+  ret = usb_hid_init(hid_dev_via);
+  if (ret != 0)
+  {
+    LOG_ERR("Failed to initialize second HID device: %d", ret);
+    return -1;
+  }
+
+  k_thread_create(&usb_thread_data, usb_thread_stack,
+                K_THREAD_STACK_SIZEOF(usb_thread_stack),
+                hidThread,
+                NULL, NULL, NULL,
+                THREAD_PRIORITY, 0, K_NO_WAIT);
+
+#ifdef _USE_HW_CLI
+  cliAdd("usbhid", cliCmd);
+#endif
+  return ret;
+}
 
 bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t))
 {
@@ -286,18 +301,18 @@ bool usbHidSendReport(uint8_t *p_data, uint16_t length)
 {
   bool ret = true;
 
-  if (!tud_suspended())
-  {
-    report_info_t report_info;
+  // if (!tud_suspended())
+  // {
+  //   report_info_t report_info;
 
-    memcpy(report_info.buf, p_data, HID_KEYBOARD_REPORT_SIZE);
-    qbufferWrite(&report_q, (uint8_t *)&report_info, 1);   
-  }
-  else
-  {
-    tud_remote_wakeup();
-    ret = false;
-  }
+  //   memcpy(report_info.buf, p_data, HID_KEYBOARD_REPORT_SIZE);
+  //   qbufferWrite(&report_q, (uint8_t *)&report_info, 1);
+  // }
+  // else
+  // {
+  //   tud_remote_wakeup();
+  //   ret = false;
+  // }
 
   return ret;
 }
@@ -316,38 +331,30 @@ bool usbHidSendReportEXK(uint8_t *p_data, uint16_t length)
   //   {
   //     report_info.len = length;
   //     memcpy(report_info.buf, p_data, length);
-  //     qbufferWrite(&report_exk_q, (uint8_t *)&report_info, 1);        
-  //   }    
+  //     qbufferWrite(&report_exk_q, (uint8_t *)&report_info, 1);
+  //   }
   // }
   // else
   // {
   //   usbHidUpdateWakeUp(&USBD_Device);
   // }
-  
+
   return true;
 }
 
-void hidThread(void *args)
+static void hidThread(void *arg1, void *arg2, void *arg3)
 {
-  bool ret;
-  report_info_t report_info;
+  ARG_UNUSED(arg1);
+  ARG_UNUSED(arg2);
+  ARG_UNUSED(arg3);
 
-
-  while(1)
+  while (1)
   {
-    if (tud_hid_n_ready(ITF_ID_KEYBOARD))
+    if (usbIsConnect())
     {
-      if (qbufferAvailable(&report_q) > 0)
-      {
-        qbufferRead(&report_q, (uint8_t *)&report_info, 1);
-        ret = tud_hid_n_report(ITF_ID_KEYBOARD, REPORT_ID_KEYBOARD, report_info.buf, sizeof(report_info.buf));
-        if (!ret)
-        {
-          logPrintf("usbHidSendReport() Fail\n");
-        }
-      }
+      send_mouse_report();
     }
-    delay(1);
+    k_msleep(1000);
   }
 }
 
@@ -367,3 +374,5 @@ void cliCmd(cli_args_t *args)
   }
 }
 #endif
+
+#endif // _USE_HW_USB

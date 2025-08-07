@@ -16,7 +16,7 @@ file(GLOB SRC_FILES
   src/hw/driver/*.c
   src/hw/*.c
   src/hw/driver/usb/*.c
-  # src/hw/driver/usb/usb_hid/*.c
+  src/hw/driver/usb/usb_hid/*.c
 )
 
 # 소스 파일들을 재귀적으로 수집합니다.

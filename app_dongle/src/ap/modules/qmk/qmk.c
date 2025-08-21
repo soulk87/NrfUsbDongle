@@ -1,12 +1,9 @@
 #include "qmk.h"
 #include "qmk/port/port.h"
-#include "tinyusb.h"
 
 
 static void cliQmk(cli_args_t *args);
 static void idle_task(void);
-static void qmkThread(void *args);
-static void usbThread(void *args);
 
 static bool is_suspended = false;
 
@@ -24,24 +21,12 @@ bool qmkInit(void)
   
   is_suspended = usbIsSuspended();
 
-  logPrintf("[  ] qmkInit()\n");
-  logPrintf("     MATRIX_ROWS : %d\n", MATRIX_ROWS);
-  logPrintf("     MATRIX_COLS : %d\n", MATRIX_COLS);
-  logPrintf("     DEBOUNCE    : %d\n", DEBOUNCE);
-
-  if (xTaskCreate(qmkThread, "qmkThread", _HW_DEF_RTOS_THREAD_MEM_QMK, NULL, _HW_DEF_RTOS_THREAD_PRI_QMK, NULL) != pdPASS)
-  {
-    logPrintf("[NG] qmkThread()\n");   
-  }  
-
-  if (xTaskCreate(usbThread, "usbThread", _HW_DEF_RTOS_THREAD_MEM_USB, NULL, _HW_DEF_RTOS_THREAD_PRI_USB, NULL) != pdPASS)
-  {
-    logPrintf("[NG] qmkThread()\n");   
-  }  
+  // logPrintf("[  ] qmkInit()\n");
+  // logPrintf("     MATRIX_ROWS : %d\n", MATRIX_ROWS);
+  // logPrintf("     MATRIX_COLS : %d\n", MATRIX_COLS);
+  // logPrintf("     DEBOUNCE    : %d\n", DEBOUNCE);
 
   cliAdd("qmk", cliQmk);
-
-
 
   return true;
 }
@@ -51,24 +36,6 @@ void qmkUpdate(void)
   keyboard_task();
   eeprom_task();
   idle_task();
-}
-
-void qmkThread(void *args)
-{
-  while(1)
-  {
-    qmkUpdate();
-    delay(1);
-  }
-}
-
-void usbThread(void *args)
-{
-  while(1)
-  {
-    tud_task();
-    delay(1);
-  }
 }
 
 void keyboard_post_init_user(void)

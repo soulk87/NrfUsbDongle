@@ -41,7 +41,14 @@
 			"usb_hid.h": "c",
 			"cli.h": "c",
 			"usb.h": "c",
-			"usb_descriptor.h": "c"
+			"usb_descriptor.h": "c",
+			"bsp.h": "c",
+			"time_units.h": "c",
+			"keys.h": "c",
+			"eeprom.h": "c",
+			"bootloader.h": "c",
+			"quantum.h": "c",
+			"def.h": "c"
 		},
 		"nrf-connect.debugging.bindings": {
 			"${workspaceFolder}/app_dongle/build": "Launch build"

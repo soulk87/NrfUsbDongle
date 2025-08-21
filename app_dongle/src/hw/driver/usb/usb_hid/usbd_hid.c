@@ -116,7 +116,6 @@ static const uint8_t hid_report_desc[] = {
     0xC0, // End Physical Collection
     0xC0, // End Application Collection
 };
-
 // HID Report Descriptor (VIA)
 static const uint8_t hid_report_desc_via[] = {
     //
@@ -127,31 +126,25 @@ static const uint8_t hid_report_desc_via[] = {
     0x09, 0x62,       //   Usage (Vendor Defined)
     0x15, 0x00,       //   Logical Minimum (0)
     0x26, 0xFF, 0x00, //   Logical Maximum (255)
-    0x95, 64,         //   Report Count
+    0x95, HID_VIA_EP_SIZE,         //   Report Count
     0x75, 0x08,       //   Report Size (8)
     0x81, 0x02,       //   Input (Data, Variable, Absolute)
     // Data from host
     0x09, 0x63,       //   Usage (Vendor Defined)
     0x15, 0x00,       //   Logical Minimum (0)
     0x26, 0xFF, 0x00, //   Logical Maximum (255)
-    0x95, 64,         //   Report Count
+    0x95, HID_VIA_EP_SIZE,         //   Report Count
     0x75, 0x08,       //   Report Size (8)
     0x91, 0x02,       //   Output (Data, Variable, Absolute)
     0xC0              // End Collection
 };
 
-#define HID_KEYBOARD_REPORT_SIZE 64U
-
-typedef struct
-{
-  uint8_t buf[HID_KEYBOARD_REPORT_SIZE];
-} report_info_t;
-
 static void (*via_hid_receive_func)(uint8_t *data, uint8_t length) = NULL;
-static uint8_t via_hid_usb_report[32];
+
+static uint8_t via_hid_usb_report[HID_VIA_EP_SIZE];
 
 static qbuffer_t report_q;
-static report_info_t report_buf[128];
+
 
 #ifdef _USE_HW_CLI
 static void cliCmd(cli_args_t *args);
@@ -174,19 +167,25 @@ static int hid_get_report_cb(const struct device *dev,
   return 0;
 }
 
-static uint8_t rx_report[64] = {0};
+static uint8_t rx_report[HID_VIA_EP_SIZE] = {0};
+
 static void hid_out_ready_cb(const struct device *dev)
 {
   LOG_DBG("HID Interrupt OUT endpoint ready");
   hid_int_ep_read(hid_dev_via, rx_report, sizeof(rx_report), NULL);
   LOG_HEXDUMP_DBG(rx_report, sizeof(rx_report), "HID Interrupt OUT report");
 
-    //   memcpy(via_hid_usb_report, buffer, HID_VIA_EP_SIZE);
-    // if (via_hid_receive_func != NULL)
-    // {
-    //   via_hid_receive_func(via_hid_usb_report, HID_VIA_EP_SIZE);
-    // }
-    // tud_hid_n_report(itf, report_id, via_hid_usb_report, HID_VIA_EP_SIZE);
+  memcpy(via_hid_usb_report, rx_report, HID_VIA_EP_SIZE);
+  if (via_hid_receive_func != NULL)
+  {
+    via_hid_receive_func(via_hid_usb_report, HID_VIA_EP_SIZE);
+  }
+
+  int ret = hid_int_ep_write(hid_dev_via, via_hid_usb_report, sizeof(via_hid_usb_report), NULL);
+  if (ret < 0)
+  {
+    LOG_ERR("Failed to send mouse report: %d", ret);
+  }
 }
 
 static const struct hid_ops hid_ops = {

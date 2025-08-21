@@ -1,7 +1,7 @@
 #include "ap.h"
 // main.c
 #include <zephyr/kernel.h>
-// #include "qmk/qmk.h"
+#include "qmk/qmk.h"
 #define CLI_THREAD_STACK_SIZE 4096
 #define CLI_THREAD_PRIORITY 5
 
@@ -25,19 +25,21 @@ void apInit(void)
 
 void apMain(void)
 {
-  uint32_t pre_time;
+  // uint32_t pre_time;
   uint8_t index = 0;
-
-  pre_time = millis();
+  qmkInit();
+  delay(100);
+  // pre_time = millis();
   while (1)
   {
-    if (millis() - pre_time >= 2000)
-    {
-      pre_time = millis();
+    // if (millis() - pre_time >= 2000)
+    // {
+    //   pre_time = millis();
 
-      index++;
-    }
-    delay(1000);
+    //   index++;
+    // }
+    qmkUpdate();
+    delay(1);
   }
 }
 

@@ -25,10 +25,10 @@ int main(void) {
         //     send_mouse_report();
         // }
         
-        k_msleep(1000);
+        k_msleep(10);
         
         // 어플리케이션 메인 처리
-        // apMain();
+        apMain();
     }
 
     return 0;

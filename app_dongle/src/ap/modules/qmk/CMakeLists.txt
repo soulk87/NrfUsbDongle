@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 3.13)
-set(QMK_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/main/ap/modules/qmk")
-
+set(QMK_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src/ap/modules/qmk")
+set(KEYBOARD_PATH "keyboards/baram/45k")
 set (QMK_KEYBOARD_PATH ${QMK_ROOT_PATH}/${KEYBOARD_PATH})
+
+#console print path
+message(STATUS "QMK_ROOT_PATH: ${QMK_ROOT_PATH}")
+message(STATUS "QMK_KEYBOARD_PATH: ${QMK_KEYBOARD_PATH}")
 
 if (EXISTS "${QMK_KEYBOARD_PATH}/config.cmake")
   include ("${QMK_KEYBOARD_PATH}/config.cmake")
@@ -64,6 +68,7 @@ file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
 
 
 set (QMK_INC_DIR 
+  ${QMK_ROOT_PATH}
   ${QMK_ROOT_PATH}/port
   ${QMK_ROOT_PATH}/port/platforms 
   ${QMK_ROOT_PATH}/port/protocol

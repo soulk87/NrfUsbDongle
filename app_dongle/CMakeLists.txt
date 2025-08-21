@@ -5,7 +5,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(AppDongle)
 
 # QMK 모듈 CMake 파일을 포함합니다.
-# include(src/ap/modules/qmk/CMakeLists.txt)
+include(src/ap/modules/qmk/CMakeLists.txt)
 
 
 # 소스 파일들을 수집합니다. (비재귀적 방식)
@@ -30,7 +30,7 @@ target_sources(app PRIVATE
   src/main.c
   ${SRC_FILES}
   ${SRC_FILES_RECURSE}
-  # ${QMK_SRC_FILES}
+  ${QMK_SRC_FILES}
 )
 
 # 프로젝트의 헤더 파일 검색 경로를 지정합니다.
@@ -47,7 +47,7 @@ target_include_directories(app PUBLIC
   src/hw/driver/usb          # USB 드라이버 디렉토리
   src/hw/driver/usb/usbd_hid # USB 드라이버 디렉토리
   src/lib                    # 라이브러리 디렉토리
-
+  src/ap/modules/qmk
   ${QMK_INC_DIR}         # QMK 헤더 파일 디렉토리
 )
 

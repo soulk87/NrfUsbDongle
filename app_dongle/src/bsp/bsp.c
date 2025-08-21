@@ -9,7 +9,7 @@
 
 
 #include "bsp.h"
-
+#include <zephyr/sys/time_units.h>
 
 
 
@@ -39,7 +39,10 @@ uint32_t millis(void)
 
 uint32_t micros(void)
 {
-  // return (uint32_t)(k_cycle_get_32() / (sys_clock_hw_cycles_per_sec() / 1000000));
-  return 0;
+  uint32_t cycles;
+
+  cycles = k_cycle_get_32();
+
+  return (uint32_t)(k_cyc_to_us_floor32(cycles));
 }
 

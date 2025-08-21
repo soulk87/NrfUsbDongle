@@ -17,8 +17,8 @@
 
 #ifdef _USE_HW_LOG
 
-#define lock()      xSemaphoreTake(mutex_lock, portMAX_DELAY);
-#define unLock()    xSemaphoreGive(mutex_lock);
+#define lock()      //xSemaphoreTake(mutex_lock, portMAX_DELAY);
+#define unLock()    //xSemaphoreGive(mutex_lock);
 
 
 

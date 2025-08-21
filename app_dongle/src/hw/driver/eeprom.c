@@ -2,7 +2,6 @@
 
 
 #if defined(_USE_HW_EEPROM)
-#include "i2c.h"
 #include "cli.h"
 
 
@@ -27,24 +26,24 @@ bool eepromInit()
   bool ret;
 
 
-  ret = i2cBegin(i2c_ch, 400);
+  // ret = i2cBegin(i2c_ch, 400);
 
-  if (ret == true)
-  {
-    ret = eepromValid(0x00);
-  }
+  // if (ret == true)
+  // {
+  //   ret = eepromValid(0x00);
+  // }
 
-  logPrintf("[%s] eepromInit()\n", ret ? "OK":"NG");
-  if (ret == true)
-  {
-    logPrintf("     chip  : ZD24C128\n");
-    logPrintf("     found : 0x%02X\n", i2c_addr);
-    logPrintf("     size  : %dKB\n", eepromGetLength()/1024);
-  }
-  else
-  {
-    logPrintf("     empty\n");
-  }
+  // logPrintf("[%s] eepromInit()\n", ret ? "OK":"NG");
+  // if (ret == true)
+  // {
+  //   logPrintf("     chip  : ZD24C128\n");
+  //   logPrintf("     found : 0x%02X\n", i2c_addr);
+  //   logPrintf("     size  : %dKB\n", eepromGetLength()/1024);
+  // }
+  // else
+  // {
+  //   logPrintf("     empty\n");
+  // }
 
 #if CLI_USE(HW_EEPROM)
   cliAdd("eeprom", cliEeprom);
@@ -70,7 +69,7 @@ bool eepromValid(uint32_t addr)
     return false;
   }
 
-  ret = i2cRead16Bytes(i2c_ch, i2c_addr, addr, &data, 1, 100);
+  // ret = i2cRead16Bytes(i2c_ch, i2c_addr, addr, &data, 1, 100);
 
   return ret;
 }
@@ -84,7 +83,7 @@ bool eepromReadByte(uint32_t addr, uint8_t *p_data)
     return false;
   }
 
-  ret = i2cRead16Bytes(i2c_ch, i2c_addr, addr, p_data, 1, 100);
+  // ret = i2cRead16Bytes(i2c_ch, i2c_addr, addr, p_data, 1, 100);
 
   return ret;
 }
@@ -99,18 +98,18 @@ bool eepromWriteByte(uint32_t addr, uint8_t data_in)
     return false;
   }
 
-  ret = i2cWrite16Bytes(i2c_ch, i2c_addr, addr, &data_in, 1, 10);
+  // ret = i2cWrite16Bytes(i2c_ch, i2c_addr, addr, &data_in, 1, 10);
 
 
   pre_time = millis();
   while(millis()-pre_time < 100)
   {
 
-    ret = i2cIsDeviceReady(i2c_ch, i2c_addr);
-    if (ret == true)
-    {
-      break;
-    }
+    // ret = i2cIsDeviceReady(i2c_ch, i2c_addr);
+    // if (ret == true)
+    // {
+    //   break;
+    // }
     delay(1);
   }
 
@@ -123,14 +122,14 @@ bool eepromRead(uint32_t addr, uint8_t *p_data, uint32_t length)
   uint32_t i;
 
 
-  for (i=0; i<length; i++)
-  {
-    ret = eepromReadByte(addr + i, &p_data[i]);
-    if (ret != true)
-    {
-      break;
-    }
-  }
+  // for (i=0; i<length; i++)
+  // {
+  //   ret = eepromReadByte(addr + i, &p_data[i]);
+  //   if (ret != true)
+  //   {
+  //     break;
+  //   }
+  // }
 
   return ret;
 }
@@ -141,14 +140,14 @@ bool eepromWrite(uint32_t addr, uint8_t *p_data, uint32_t length)
   uint32_t i;
 
 
-  for (i=0; i<length; i++)
-  {
-    ret = eepromWriteByte(addr + i, p_data[i]);
-    if (ret == false)
-    {
-      break;
-    }
-  }
+  // for (i=0; i<length; i++)
+  // {
+  //   ret = eepromWriteByte(addr + i, p_data[i]);
+  //   if (ret == false)
+  //   {
+  //     break;
+  //   }
+  // }
 
   return ret;
 }

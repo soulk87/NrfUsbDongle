@@ -4,11 +4,11 @@
 
 #include "def.h"
 #include "bsp.h"
-// #include QMK_KEYMAP_CONFIG_H
+#include QMK_KEYMAP_CONFIG_H
 
 
-// #define _DEF_FIRMWATRE_VERSION    "V241003R1"
-// #define _DEF_BOARD_NAME           "ESP32-QMK"
+#define _DEF_FIRMWATRE_VERSION    "V241003R1"
+#define _DEF_BOARD_NAME           "ESP32-QMK"
 
 
 // #define _HW_DEF_RTOS_THREAD_PRI_CLI           5
@@ -29,8 +29,8 @@
 // #define _USE_HW_RTOS
 // #define _USE_HW_NVS
 #define _USE_HW_USB
-// #define _USE_HW_EEPROM
-// #define _USE_HW_RESET
+#define _USE_HW_EEPROM
+#define _USE_HW_RESET
 // #define _USE_HW_BLE
 // #define _USE_HW_BLE_HID
 // #define _USE_HW_BATTERY
@@ -51,16 +51,16 @@
 // #define      HW_CLI_GUI_WIDTH       80
 // #define      HW_CLI_GUI_HEIGHT      24
 
-// #define _USE_HW_LOG
-// #define      HW_LOG_CH              _DEF_UART1
-// #define      HW_LOG_BOOT_BUF_MAX    1024
-// #define      HW_LOG_LIST_BUF_MAX    1024
+#define _USE_HW_LOG
+#define      HW_LOG_CH              _DEF_UART1
+#define      HW_LOG_BOOT_BUF_MAX    1024
+#define      HW_LOG_LIST_BUF_MAX    1024
 
 // #define _USE_HW_I2C
 // #define      HW_I2C_MAX_CH          1
 
-// #define _USE_HW_KEYS
-// #define      HW_KEYS_PRESS_MAX      6
+#define _USE_HW_KEYS
+#define      HW_KEYS_PRESS_MAX      6
 
 // #define _USE_HW_GPIO
 // #define      HW_GPIO_MAX_CH         4

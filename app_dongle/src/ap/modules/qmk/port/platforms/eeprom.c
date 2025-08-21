@@ -1,5 +1,6 @@
 #include "quantum.h"
-
+#include "hw/include/eeprom.h"
+#include "qbuffer.h"
 
 #define EEPROM_WRITE_Q_BUF_MAX  (TOTAL_EEPROM_BYTE_COUNT + 1)
 

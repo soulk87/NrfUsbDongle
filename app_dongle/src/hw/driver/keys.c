@@ -4,21 +4,17 @@
 #ifdef _USE_HW_KEYS
 #include "qbuffer.h"
 #include "cli.h"
-#include "esp_sleep.h"
-#include "driver/gpio.h"
-#include "driver/gpio.h"
-#include "driver/rtc_io.h"
-#include "soc/io_mux_reg.h"
+
 
 
 #define KEYS_ROWS   MATRIX_ROWS
 #define KEYS_COLS   MATRIX_COLS
 
 
-#define lock()       xSemaphoreTake(mutex_lock, portMAX_DELAY);
-#define unLock()     xSemaphoreGive(mutex_lock);
-#define lockGpio()   xSemaphoreTake(mutex_gpio, portMAX_DELAY);
-#define unLockGpio() xSemaphoreGive(mutex_gpio);
+#define lock()       //xSemaphoreTake(mutex_lock, portMAX_DELAY);
+#define unLock()     //xSemaphoreGive(mutex_lock);
+#define lockGpio()   //xSemaphoreTake(mutex_gpio, portMAX_DELAY);
+#define unLockGpio() //xSemaphoreGive(mutex_gpio);
 
 #if CLI_USE(HW_KEYS)
 static void cliCmd(cli_args_t *args);
@@ -28,25 +24,24 @@ static bool keysInitGpio(void);
 
 
 static uint8_t cols_buf[KEYS_COLS];
-static SemaphoreHandle_t mutex_lock;
-static SemaphoreHandle_t mutex_gpio;
 
-static gpio_num_t rows_gpio_tbl[KEYS_ROWS] = {GPIO_NUM_11,
-                                              GPIO_NUM_10,
-                                              GPIO_NUM_9,
-                                              GPIO_NUM_8};
-static gpio_num_t cols_gpio_tbl[KEYS_COLS] = {GPIO_NUM_18,
-                                              GPIO_NUM_21,
-                                              GPIO_NUM_26,
-                                              GPIO_NUM_47,
-                                              GPIO_NUM_33,
-                                              GPIO_NUM_34,
-                                              GPIO_NUM_48,
-                                              GPIO_NUM_38,
-                                              GPIO_NUM_39,
-                                              GPIO_NUM_3,
-                                              GPIO_NUM_4,
-                                              GPIO_NUM_6};
+
+// static gpio_num_t rows_gpio_tbl[KEYS_ROWS] = {GPIO_NUM_11,
+//                                               GPIO_NUM_10,
+//                                               GPIO_NUM_9,
+//                                               GPIO_NUM_8};
+// static gpio_num_t cols_gpio_tbl[KEYS_COLS] = {GPIO_NUM_18,
+//                                               GPIO_NUM_21,
+//                                               GPIO_NUM_26,
+//                                               GPIO_NUM_47,
+//                                               GPIO_NUM_33,
+//                                               GPIO_NUM_34,
+//                                               GPIO_NUM_48,
+//                                               GPIO_NUM_38,
+//                                               GPIO_NUM_39,
+//                                               GPIO_NUM_3,
+//                                               GPIO_NUM_4,
+//                                               GPIO_NUM_6};
 
 
 static bool is_ready = false;
@@ -56,16 +51,10 @@ static bool is_ready = false;
 
 bool keysInit(void)
 {
-  mutex_lock = xSemaphoreCreateMutex();
-  mutex_gpio = xSemaphoreCreateMutex();
-
 
   keysInitGpio();
-
-  if (xTaskCreate(keysThread, "keysThread", _HW_DEF_RTOS_THREAD_MEM_KEYS, NULL, _HW_DEF_RTOS_THREAD_PRI_KEYS, NULL) != pdPASS)
-  {
-    logPrintf("[NG] keysThread()\n");   
-  }  
+  //TODO: create semaphore
+  //TODO: create thread
 
 #if CLI_USE(HW_KEYS)
   cliAdd("keys", cliCmd);
@@ -78,25 +67,25 @@ bool keysInitGpio(void)
 {
   lockGpio();
 
-  gpio_iomux_out(GPIO_NUM_26, FUNC_SPICS1_GPIO26, false);
-  gpio_iomux_out(GPIO_NUM_39, FUNC_MTCK_GPIO39, false);
+  // gpio_iomux_out(GPIO_NUM_26, FUNC_SPICS1_GPIO26, false);
+  // gpio_iomux_out(GPIO_NUM_39, FUNC_MTCK_GPIO39, false);
 
 
-  for (int i=0; i<KEYS_ROWS; i++)
-  {
-    gpio_pullup_en(rows_gpio_tbl[i]);
-    gpio_pulldown_dis(rows_gpio_tbl[i]);
-    gpio_set_direction(rows_gpio_tbl[i], GPIO_MODE_INPUT);
-  }
+  // for (int i=0; i<KEYS_ROWS; i++)
+  // {
+  //   gpio_pullup_en(rows_gpio_tbl[i]);
+  //   gpio_pulldown_dis(rows_gpio_tbl[i]);
+  //   gpio_set_direction(rows_gpio_tbl[i], GPIO_MODE_INPUT);
+  // }
 
-  for (int i=0; i<KEYS_COLS; i++)
-  {
-    gpio_pullup_dis(cols_gpio_tbl[i]);
-    gpio_pulldown_dis(cols_gpio_tbl[i]);
-    gpio_set_direction(cols_gpio_tbl[i], GPIO_MODE_OUTPUT);
+  // for (int i=0; i<KEYS_COLS; i++)
+  // {
+  //   gpio_pullup_dis(cols_gpio_tbl[i]);
+  //   gpio_pulldown_dis(cols_gpio_tbl[i]);
+  //   gpio_set_direction(cols_gpio_tbl[i], GPIO_MODE_OUTPUT);
 
-    gpio_set_level(cols_gpio_tbl[i], _DEF_HIGH);
-  }
+  //   gpio_set_level(cols_gpio_tbl[i], _DEF_HIGH);
+  // }
 
   unLockGpio();
 
@@ -105,30 +94,30 @@ bool keysInitGpio(void)
 
 bool keysEnterSleep(void)
 {
-  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+  // esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
 
-  gpio_config_t config = {
-    .pin_bit_mask = BIT64(GPIO_NUM_18),
-    .mode         = GPIO_MODE_INPUT,
-    .pull_down_en = true,
-    .pull_up_en   = false,
-    .intr_type    = GPIO_INTR_DISABLE};
+  // gpio_config_t config = {
+  //   .pin_bit_mask = BIT64(GPIO_NUM_18),
+  //   .mode         = GPIO_MODE_INPUT,
+  //   .pull_down_en = true,
+  //   .pull_up_en   = false,
+  //   .intr_type    = GPIO_INTR_DISABLE};
 
-  for (int i=0; i<KEYS_COLS; i++)
-  {
-    config.pin_bit_mask = BIT64(cols_gpio_tbl[i]);
-    gpio_config(&config);
-    gpio_wakeup_enable(cols_gpio_tbl[i], GPIO_INTR_HIGH_LEVEL);
-  }
+  // for (int i=0; i<KEYS_COLS; i++)
+  // {
+  //   config.pin_bit_mask = BIT64(cols_gpio_tbl[i]);
+  //   gpio_config(&config);
+  //   gpio_wakeup_enable(cols_gpio_tbl[i], GPIO_INTR_HIGH_LEVEL);
+  // }
 
-  esp_sleep_enable_gpio_wakeup();  
+  // esp_sleep_enable_gpio_wakeup();  
   return true;
 }
 
 bool keysExitSleep(void)
 {
-  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
-  keysInitGpio();
+  // esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+  // keysInitGpio();
   return true;
 }
 
@@ -184,16 +173,16 @@ void keysScan(void)
   // lockGpio();
   for (int cols_i = 0; cols_i < KEYS_COLS; cols_i++)
   {
-    gpio_set_level(cols_gpio_tbl[cols_i], _DEF_LOW);
-    esp_rom_delay_us(10);
-    for (int rows_i = 0; rows_i < KEYS_ROWS; rows_i++)
-    {
-      if (gpio_get_level(rows_gpio_tbl[rows_i]) == 0)
-      {
-        scan_buf[cols_i] |= (1<<rows_i);
-      }
-    }
-    gpio_set_level(cols_gpio_tbl[cols_i], _DEF_HIGH);
+    // gpio_set_level(cols_gpio_tbl[cols_i], _DEF_LOW);
+    // esp_rom_delay_us(10);
+    // for (int rows_i = 0; rows_i < KEYS_ROWS; rows_i++)
+    // {
+    //   if (gpio_get_level(rows_gpio_tbl[rows_i]) == 0)
+    //   {
+    //     scan_buf[cols_i] |= (1<<rows_i);
+    //   }
+    // }
+    // gpio_set_level(cols_gpio_tbl[cols_i], _DEF_HIGH);
   }
   // unLockGpio();
 
@@ -206,11 +195,11 @@ void keysScan(void)
 
 void keysThread(void *args)
 {
-  while(1)
-  {
-    keysScan();
-    delay(1);
-  }
+  // while(1)
+  // {
+  //   keysScan();
+  //   delay(1);
+  // }
 }
 
 #if CLI_USE(HW_KEYS)

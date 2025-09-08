@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include "wear_leveling_config.h"
 
 #if BACKING_STORE_WRITE_SIZE == 2
 typedef uint16_t backing_store_int_t;

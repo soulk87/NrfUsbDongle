@@ -3,7 +3,7 @@
 
 #if defined(_USE_HW_EEPROM)
 #include "cli.h"
-
+#include "wear_leveling/wear_leveling.h"
 
 
 #if CLI_USE(HW_EEPROM)
@@ -23,8 +23,6 @@ static uint8_t i2c_addr = 0x50;
 
 bool eepromInit()
 {
-  bool ret;
-
 
   // ret = i2cBegin(i2c_ch, 400);
 
@@ -44,14 +42,14 @@ bool eepromInit()
   // {
   //   logPrintf("     empty\n");
   // }
+  wear_leveling_init();
 
 #if CLI_USE(HW_EEPROM)
   cliAdd("eeprom", cliEeprom);
 #endif
 
-  is_init = ret;
 
-  return ret;
+  return true;
 }
 
 bool eepromIsInit(void)
@@ -83,6 +81,8 @@ bool eepromReadByte(uint32_t addr, uint8_t *p_data)
     return false;
   }
 
+  wear_leveling_read(addr, p_data, 1);
+
   // ret = i2cRead16Bytes(i2c_ch, i2c_addr, addr, p_data, 1, 100);
 
   return ret;
@@ -90,66 +90,35 @@ bool eepromReadByte(uint32_t addr, uint8_t *p_data)
 
 bool eepromWriteByte(uint32_t addr, uint8_t data_in)
 {
-  uint32_t pre_time;
-  bool ret;
-
   if (addr >= EEPROM_MAX_SIZE)
   {
     return false;
   }
 
-  // ret = i2cWrite16Bytes(i2c_ch, i2c_addr, addr, &data_in, 1, 10);
+  wear_leveling_write(addr, &data_in, 1);
 
-
-  pre_time = millis();
-  while(millis()-pre_time < 100)
-  {
-
-    // ret = i2cIsDeviceReady(i2c_ch, i2c_addr);
-    // if (ret == true)
-    // {
-    //   break;
-    // }
-    delay(1);
-  }
-
-  return ret;
+  return true;
 }
 
 bool eepromRead(uint32_t addr, uint8_t *p_data, uint32_t length)
 {
-  bool ret = true;
-  uint32_t i;
 
+  if(wear_leveling_read(addr, p_data, length) == WEAR_LEVELING_FAILED)
+  {
+    return false;
+  }
 
-  // for (i=0; i<length; i++)
-  // {
-  //   ret = eepromReadByte(addr + i, &p_data[i]);
-  //   if (ret != true)
-  //   {
-  //     break;
-  //   }
-  // }
-
-  return ret;
+  return true;
 }
 
 bool eepromWrite(uint32_t addr, uint8_t *p_data, uint32_t length)
 {
-  bool ret = false;
-  uint32_t i;
+  if(wear_leveling_write(addr, p_data, length) == WEAR_LEVELING_FAILED)
+  {
+    return false;
+  }
 
-
-  // for (i=0; i<length; i++)
-  // {
-  //   ret = eepromWriteByte(addr + i, p_data[i]);
-  //   if (ret == false)
-  //   {
-  //     break;
-  //   }
-  // }
-
-  return ret;
+  return true;
 }
 
 uint32_t eepromGetLength(void)

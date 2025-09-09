@@ -5,6 +5,7 @@
 #include "wear_leveling_config.h"
 #include "wear_leveling_internal.h"
 
+volatile uint32_t wear_leveling_buffer[WEAR_LEVELING_BACKING_SIZE];
 
 bool backing_store_init(void) {
     bs_dprintf("Init\n");
@@ -13,7 +14,7 @@ bool backing_store_init(void) {
 
 bool backing_store_unlock(void) {
     bs_dprintf("Unlock\n");
-    FLASH_Unlock();
+    // FLASH_Unlock();
     return true;
 }
 
@@ -21,6 +22,7 @@ bool backing_store_erase(void) {
 #ifdef WEAR_LEVELING_DEBUG_OUTPUT
     uint32_t start = timer_read32();
 #endif
+    memset(wear_leveling_buffer, 0x00, sizeof(wear_leveling_buffer));
 
     bool         ret = true;
     // FLASH_Status status;
@@ -36,23 +38,28 @@ bool backing_store_erase(void) {
 }
 
 bool backing_store_write(uint32_t address, backing_store_int_t value) {
-    uint32_t offset = ((WEAR_LEVELING_LEGACY_EMULATION_BASE_PAGE_ADDRESS) + address);
-    bs_dprintf("Write ");
-    wl_dump(offset, &value, sizeof(backing_store_int_t));
-    return FLASH_ProgramHalfWord(offset, ~value) == FLASH_COMPLETE;
+    // uint32_t offset = ((WEAR_LEVELING_LEGACY_EMULATION_BASE_PAGE_ADDRESS) + address);
+    // bs_dprintf("Write ");
+    // wl_dump(offset, &value, sizeof(backing_store_int_t));
+    // return FLASH_ProgramHalfWord(offset, ~value) == FLASH_COMPLETE;
+    wear_leveling_buffer[address/4] = ~value;
+    return true;
 }
 
 bool backing_store_lock(void) {
     bs_dprintf("Lock  \n");
-    FLASH_Lock();
+    // FLASH_Lock();
     return true;
 }
 
 bool backing_store_read(uint32_t address, backing_store_int_t* value) {
-    uint32_t             offset = ((WEAR_LEVELING_LEGACY_EMULATION_BASE_PAGE_ADDRESS) + address);
-    backing_store_int_t* loc    = (backing_store_int_t*)offset;
-    *value                      = ~(*loc);
-    bs_dprintf("Read  ");
-    wl_dump(offset, loc, sizeof(backing_store_int_t));
+    // uint32_t             offset = ((WEAR_LEVELING_LEGACY_EMULATION_BASE_PAGE_ADDRESS) + address);
+    // backing_store_int_t* loc    = (backing_store_int_t*)offset;
+    // *value                      = ~(*loc);
+    // bs_dprintf("Read  ");
+    // wl_dump(offset, loc, sizeof(backing_store_int_t));
+
+    *value = wear_leveling_buffer[address/4];
+
     return true;
 }

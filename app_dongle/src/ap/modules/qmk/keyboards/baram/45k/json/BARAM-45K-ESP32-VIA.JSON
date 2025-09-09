@@ -2,7 +2,7 @@
 	"name": "BARAM-45K-ESP32",
 
 	"vendorId": "0x0483",
-	"productId": "0x5300",
+	"productId": "0x5220",
 	
 	"matrix": { "rows": 4, "cols": 12 },
 	

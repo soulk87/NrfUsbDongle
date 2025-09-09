@@ -17,6 +17,10 @@ file(GLOB SRC_FILES
   src/hw/*.c
   src/hw/driver/usb/*.c
   src/hw/driver/usb/usb_hid/*.c
+  src/hw/driver/wear_leveling/*.c
+  src/lib/fnv/qmk_fnv_type_validation.c
+  src/lib/fnv/hash_32a.c
+  src/lib/fnv/hash_64a.c
 )
 
 # 소스 파일들을 재귀적으로 수집합니다.
@@ -46,7 +50,9 @@ target_include_directories(app PUBLIC
   src/hw                     # 하드웨어 드라이버 디렉토리
   src/hw/driver/usb          # USB 드라이버 디렉토리
   src/hw/driver/usb/usbd_hid # USB 드라이버 디렉토리
+  src/hw/driver/wear_leveling # 웨어 레벨링 드라이버 디렉토리
   src/lib                    # 라이브러리 디렉토리
+  src/lib/fnv                # FNV 해시 라이브러리 디렉토리
   src/ap/modules/qmk
   ${QMK_INC_DIR}         # QMK 헤더 파일 디렉토리
 )

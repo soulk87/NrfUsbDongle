@@ -7,7 +7,7 @@
 #define USB_PID                     0x5300
 
 #define EECONFIG_USER_DATA_SIZE     0
-#define TOTAL_EEPROM_BYTE_COUNT     1024
+#define TOTAL_EEPROM_BYTE_COUNT     2048
 
 #define DYNAMIC_KEYMAP_LAYER_COUNT  8
 

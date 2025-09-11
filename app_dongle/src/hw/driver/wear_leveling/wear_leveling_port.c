@@ -4,11 +4,28 @@
 #include "wear_leveling.h"
 #include "wear_leveling_config.h"
 #include "wear_leveling_internal.h"
+#include <zephyr/kernel.h>
+#include <zephyr/drivers/flash.h>
+#include <zephyr/storage/flash_map.h>
+#include <zephyr/device.h>
+#include <zephyr/devicetree.h>
+#include <stdio.h>
 
-volatile uint32_t wear_leveling_buffer[WEAR_LEVELING_BACKING_SIZE];
+#define KEY_PARTITION_OFFSET	FIXED_PARTITION_OFFSET(keymap_partition)
+#define KEY_PARTITION_DEVICE	FIXED_PARTITION_DEVICE(keymap_partition)
+#define FLASH_PAGE_SIZE   4096
+
+const struct device *flash_dev = KEY_PARTITION_DEVICE;
 
 bool backing_store_init(void) {
     bs_dprintf("Init\n");
+
+    
+	if (!device_is_ready(flash_dev)) {
+		bs_dprintf("Internal storage device not ready\n");
+		return false;
+	}
+    
     return true;
 }
 
@@ -22,9 +39,11 @@ bool backing_store_erase(void) {
 #ifdef WEAR_LEVELING_DEBUG_OUTPUT
     uint32_t start = timer_read32();
 #endif
-    memset(wear_leveling_buffer, 0x00, sizeof(wear_leveling_buffer));
+  
 
     bool         ret = true;
+
+    flash_erase(flash_dev, KEY_PARTITION_OFFSET, FLASH_PAGE_SIZE*2);
     // FLASH_Status status;
     // for (int i = 0; i < (WEAR_LEVELING_LEGACY_EMULATION_PAGE_COUNT); ++i) {
     //     status = FLASH_ErasePage(WEAR_LEVELING_LEGACY_EMULATION_BASE_PAGE_ADDRESS + (i * (WEAR_LEVELING_LEGACY_EMULATION_PAGE_SIZE)));
@@ -42,7 +61,16 @@ bool backing_store_write(uint32_t address, backing_store_int_t value) {
     // bs_dprintf("Write ");
     // wl_dump(offset, &value, sizeof(backing_store_int_t));
     // return FLASH_ProgramHalfWord(offset, ~value) == FLASH_COMPLETE;
-    wear_leveling_buffer[address/4] = ~value;
+    static uint32_t buffer;
+
+    buffer = ~value;
+
+    if(flash_write(flash_dev, KEY_PARTITION_OFFSET + address, &buffer, sizeof(backing_store_int_t)) != 0) {
+        printf("   Write failed!\n");
+        return false;
+    }
+    volatile static uint32_t test_counter = 0;
+    test_counter++;
     return true;
 }
 
@@ -58,8 +86,15 @@ bool backing_store_read(uint32_t address, backing_store_int_t* value) {
     // *value                      = ~(*loc);
     // bs_dprintf("Read  ");
     // wl_dump(offset, loc, sizeof(backing_store_int_t));
+    static uint32_t buf_word;
 
-    *value = wear_leveling_buffer[address/4];
+    if (flash_read(flash_dev, KEY_PARTITION_OFFSET + address, &buf_word,
+			sizeof(uint32_t)) != 0) {
+		printf("   Read failed!\n");
+		return false;
+	}
+
+    *value = ~buf_word;
 
     return true;
 }

@@ -53,7 +53,9 @@
 			"compare": "c",
 			"wear_leveling_port_config.h": "c",
 			"string.h": "c",
-			"wear_leveling_internal.h": "c"
+			"wear_leveling_internal.h": "c",
+			"reset.h": "c",
+			"type_traits": "c"
 		},
 		"nrf-connect.debugging.bindings": {
 			"${workspaceFolder}/app_dongle/build": "Launch build"

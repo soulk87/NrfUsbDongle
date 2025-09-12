@@ -127,11 +127,11 @@ bool usbInit(void)
 {
   bool ret = false;
   ret |= cdcInit();
-  k_msleep(100); // 하드웨어 안정화 대기
+  k_msleep(500); // 하드웨어 안정화 대기
   ret |= usbHidInit();
   is_init = ret;
   // USB 활성화 (지연된 초기화)
-  k_msleep(100); // 하드웨어 안정화 대기
+  k_msleep(500); // 하드웨어 안정화 대기
   ret = usb_enable(hid_status_cb);
   if (ret != 0)
   {

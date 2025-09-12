@@ -73,7 +73,7 @@
 //
 // #define _USE_CLI_HW_EEPROM          1
 // #define _USE_CLI_HW_I2C             1
-// #define _USE_CLI_HW_KEYS            1
+#define _USE_CLI_HW_KEYS            1
 
 
 #define __WEAK                      __attribute__((weak))

@@ -187,7 +187,7 @@ void keysScan(void)
   // unLockGpio();
 
   lock();
-  memcpy(cols_buf, scan_buf, sizeof(scan_buf));
+  // memcpy(cols_buf, scan_buf, sizeof(scan_buf));
   unLock();
 
   is_ready = true;
@@ -247,9 +247,24 @@ void cliCmd(cli_args_t *args)
     ret = true;
   }
 
+  if (args->argc == 3 && args->isStr(0, "rowcol"))
+  {
+    uint16_t row;
+    uint16_t col;
+
+    row = (uint16_t)args->getData(1);
+    col = (uint16_t)args->getData(2);
+
+    // change key state
+    cols_buf[col] ^= (1<<row);
+    cliPrintf("keys row %d col %d state change\n", row, col);
+    ret = true;
+  }
+
   if (ret == false)
   {
     cliPrintf("keys info\n");
+    cliPrintf("keys rowcol [row] [col]\n");
   }
 }
 #endif

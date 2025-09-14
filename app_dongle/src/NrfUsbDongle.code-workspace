@@ -55,7 +55,13 @@
 			"string.h": "c",
 			"wear_leveling_internal.h": "c",
 			"reset.h": "c",
-			"type_traits": "c"
+			"type_traits": "c",
+			"rf.h": "c",
+			"myrf.h": "c",
+			"nrf_clock_control.h": "c",
+			"clock_control.h": "c",
+			"esb.h": "c",
+			"errno.h": "c"
 		},
 		"nrf-connect.debugging.bindings": {
 			"${workspaceFolder}/app_dongle/build": "Launch build"

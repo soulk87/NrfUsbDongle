@@ -81,9 +81,14 @@
             reg = <0x00000000 0x000D3000>; /* 0xE3000 - 0x1000 = 926KB */
         };
 
-        storage_partition: partition@d3000 {
+		keymap_partition: partition@d3000{
+            label = "key_storage";
+            reg = <0x000D3000 0x00002000>; /* keymap storage */
+		};
+
+        storage_partition: partition@d5000 {
             label = "storage";
-            reg = <0x000D3000 0x00010000>; /* 64KB, BLE 데이터 저장용 */
+            reg = <0x000D5000 0x0000E000>; /* 64KB, BLE 데이터 저장용 */
         };
 
         dfu_data_partition: partition@e3000 {

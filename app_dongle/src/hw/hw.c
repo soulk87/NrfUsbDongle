@@ -33,8 +33,9 @@ bool hwInit(void)
   // adcInit();
   // batteryInit();
   // i2cInit();
-  // eepromInit();
-  // keysInit();
+  eepromInit();
+  rfInit();
+  keysInit();
 
   // delay(100);
   usbInit();

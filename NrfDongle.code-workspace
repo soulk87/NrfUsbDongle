@@ -4,7 +4,8 @@
 			"path": "../NrfUsbDongle"
 		},
 		{
-			"path": "../Nrf_Iot"
+			"name": "soc_flash_nrf",
+			"path": "../../c:/ncs/v3.0.0/zephyr/samples/drivers/soc_flash_nrf"
 		}
 	],
 	"settings": {
@@ -13,6 +14,10 @@
 		],
 		"nrf-connect.boardRoots": [
 			"${workspaceFolder}/boards"
-		]
+		],
+		"files.associations": {
+			"wear_leveling_config.h": "c",
+			"devicetree.h": "c"
+		}
 	}
 }

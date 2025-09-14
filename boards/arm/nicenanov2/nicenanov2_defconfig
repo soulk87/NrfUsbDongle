@@ -20,3 +20,14 @@ CONFIG_NRFX_GPPI=y
 # https://devzone.nordicsemi.com/f/nordic-q-a/89216/adafruit-bootloader-nrf-connect-zephyr-application
 CONFIG_BUILD_OUTPUT_UF2=y
 # CONFIG_ROM_START_OFFSET=0x1000
+
+CONFIG_FLASH=y
+CONFIG_MPU_ALLOW_FLASH_WRITE=y
+CONFIG_FCB=y
+CONFIG_FLASH_MAP=y
+CONFIG_SETTINGS=y
+CONFIG_SETTINGS_FCB=y
+
+# Enable ESB
+CONFIG_ESB=y
+CONFIG_CLOCK_CONTROL=y

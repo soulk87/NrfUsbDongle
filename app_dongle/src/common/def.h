@@ -68,7 +68,8 @@
 #define _DEF_CAN_STD          0
 #define _DEF_CAN_EXT          1
 
-
+#define _DEF_RF_MODE_RX      0
+#define _DEF_RF_MODE_TX      1
 
 
 #define constrain(amt,low,high) ((amt)<=(low)?(low):((amt)>(high)?(high):(amt)))

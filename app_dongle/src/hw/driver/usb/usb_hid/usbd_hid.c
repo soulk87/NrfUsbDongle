@@ -247,7 +247,7 @@ bool usbHidInit(void)
   if (!hid_dev)
   {
     LOG_ERR("Failed to get HID device binding");
-    return -1;
+    return false;
   }
 
   // HID 디스크립터 등록 및 초기화
@@ -257,7 +257,7 @@ bool usbHidInit(void)
   if (ret != 0)
   {
     LOG_ERR("Failed to initialize HID device: %d", ret);
-    return -1;
+    return false;
   }
 
   // 두 번째 HID 디바이스 바인딩
@@ -265,7 +265,7 @@ bool usbHidInit(void)
   if (!hid_dev_via)
   {
     LOG_ERR("Failed to get second HID device binding");
-    return -1;
+    return false;
   }
 
   // 두 번째 HID 디스크립터 등록 및 초기화
@@ -275,7 +275,7 @@ bool usbHidInit(void)
   if (ret != 0)
   {
     LOG_ERR("Failed to initialize second HID device: %d", ret);
-    return -1;
+    return false;
   }
 
   k_thread_create(&usb_thread_data, usb_thread_stack,
@@ -312,7 +312,21 @@ bool usbHidSendReport(uint8_t *p_data, uint16_t length)
   //   tud_remote_wakeup();
   //   ret = false;
   // }
+  if (length > 8)
+    return false;
+    
+  static uint8_t report[9] = {0};
+  report[0] = REPORT_ID_KEYBOARD;
+  memcpy(report + 1, p_data, length);
 
+  int usb_write_ret = hid_int_ep_write(hid_dev, report, sizeof(report), NULL);
+  if (usb_write_ret < 0)
+  {
+    LOG_ERR("Failed to send keyboard report: %d", usb_write_ret);
+    ret = false;
+  }
+
+  
   return ret;
 }
 

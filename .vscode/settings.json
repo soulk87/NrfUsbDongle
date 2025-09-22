@@ -26,7 +26,6 @@
         "devicetree.h": "c"
     },
     // "cmake.sourceDirectory": "C:/GIT/NrfUsbDongle/app_dongle",
-    "C_Cpp.errorSquiggles": "enabled",
     "nrf-connect.debugging.bindings": {
         "${workspaceFolder}/app_dongle/build": "Launch build"
     }

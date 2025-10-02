@@ -63,7 +63,9 @@
 			"esb.h": "c",
 			"errno.h": "c",
 			"spi.h": "c",
-			"pmw3610.h": "c"
+			"pmw3610.h": "c",
+			"pointing_device.h": "c",
+			"joystick.h": "c"
 		},
 		"nrf-connect.debugging.bindings": {
 			"${workspaceFolder}/app_dongle/build": "Launch build"

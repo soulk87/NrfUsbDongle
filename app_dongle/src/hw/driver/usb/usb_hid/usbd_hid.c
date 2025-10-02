@@ -296,6 +296,22 @@ bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t))
   return true;
 }
 
+bool usbHidSendMouseReport(uint8_t buttons, int8_t x, int8_t y, int8_t v, int8_t h)
+{
+  uint8_t report[] = {
+      REPORT_ID_MOUSE, // Report ID
+      buttons,         // Buttons
+      (uint8_t)x,            // X movement
+      (uint8_t)y,            // Y movement
+      (uint8_t)v            // Wheel
+  };
+  int ret = hid_int_ep_write(hid_dev, report, sizeof(report), NULL);
+  if (ret < 0)
+  {
+    LOG_ERR("Failed to send mouse report: %d", ret);
+  }
+}
+
 bool usbHidSendReport(uint8_t *p_data, uint16_t length)
 {
   bool ret = true;
@@ -363,10 +379,10 @@ static void hidThread(void *arg1, void *arg2, void *arg3)
 
   while (1)
   {
-    if (usbIsConnect())
-    {
-      send_mouse_report();
-    }
+    // if (usbIsConnect())
+    // {
+    //   send_mouse_report();
+    // }
     k_msleep(1000);
   }
 }

@@ -37,7 +37,7 @@ bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t));
 bool usbHidSendReport(uint8_t *p_data, uint16_t length);
 bool usbHidSendReportEXK(uint8_t *p_data, uint16_t length);
 void usbHidSetStatusLed(uint8_t led_bits);
-
+bool usbHidSendMouseReport(uint8_t buttons, int8_t x, int8_t y, int8_t v, int8_t h);
 
 #ifdef __cplusplus
 }

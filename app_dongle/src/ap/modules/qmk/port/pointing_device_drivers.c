@@ -493,9 +493,20 @@ const pointing_device_driver_t pointing_device_driver = {
 // clang-format on
 
 #else
+
+#include "hw.h"
+
 __attribute__((weak)) void           pointing_device_driver_init(void) {}
 __attribute__((weak)) report_mouse_t pointing_device_driver_get_report(report_mouse_t mouse_report) {
+   
+    int32_t x = 0, y = 0;
+    if (pmw3610_motion_read(&x, &y)) 
+    {
+        mouse_report.x = CONSTRAIN_HID_XY(x);
+        mouse_report.y = CONSTRAIN_HID_XY(y);
+    }
     return mouse_report;
+    
 }
 __attribute__((weak)) uint16_t pointing_device_driver_get_cpi(void) {
     return 0;

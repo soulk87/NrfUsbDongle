@@ -10,7 +10,16 @@
             "defines": [
                 "_DEBUG",
                 "UNICODE",
-                "_UNICODE"
+                "_UNICODE",
+                "VIA_ENABLE",
+                "RAW_ENABLE",
+                "DYNAMIC_KEYMAP_ENABLE",
+                "KEY_OVERRIDE_ENABLE",
+                "HOLD_ON_OTHER_KEY_PRESS",
+                "EXTRAKEY_ENABLE",
+                "MOUSEKEY_ENABLE",
+                "MOUSE_ENABLE",
+                "POINTING_DEVICE_ENABLE"
             ],
             "windowsSdkVersion": "10.0.22621.0",
             "compilerPath": "cl.exe",

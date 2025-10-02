@@ -146,7 +146,8 @@ void host_mouse_send(report_mouse_t *report) {
         return;
     }
 #endif
-
+    if (usbIsConnect())
+        usbHidSendMouseReport(report->buttons, report->x, report->y, report->v, report->h);
     if (!driver) return;
 #ifdef MOUSE_SHARED_EP
     report->report_id = REPORT_ID_MOUSE;

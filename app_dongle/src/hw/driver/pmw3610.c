@@ -104,8 +104,8 @@ struct pmw3610_config pmw3610_cfg = {
     .axis_x = 0,
     .axis_y = 1,
     .res_cpi = 1600,
-    .invert_x = false,
-    .invert_y = false,
+    .invert_x = true,
+    .invert_y = true,
     .force_awake = true,
     .smart_mode = false,
 };

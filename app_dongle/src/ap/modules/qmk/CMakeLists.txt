@@ -41,10 +41,12 @@ file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
   ${QMK_ROOT_PATH}/quantum/eeconfig.c
   ${QMK_ROOT_PATH}/quantum/keymap_introspection.c
   ${QMK_ROOT_PATH}/quantum/color.c
+  ${QMK_ROOT_PATH}/quantum/mousekey.c
 
 
   ${QMK_ROOT_PATH}/quantum/sequencer/*.c
   ${QMK_ROOT_PATH}/quantum/logging/*.c
+  ${QMK_ROOT_PATH}/quantum/pointing_device/*.c
   # ${QMK_ROOT_PATH}/quantum/debounce/sym_eager_pk.c
   # ${QMK_ROOT_PATH}/quantum/debounce/asym_eager_defer_pk.c
   ${QMK_ROOT_PATH}/quantum/debounce/${DEBOUNCE_TYPE}.c
@@ -79,6 +81,7 @@ set (QMK_INC_DIR
   ${QMK_ROOT_PATH}/quantum/send_string
   ${QMK_ROOT_PATH}/quantum/process_keycode
   ${QMK_ROOT_PATH}/quantum/rgblight
+  ${QMK_ROOT_PATH}/quantum/pointing_device
 
   ${QMK_KEYBOARD_PATH}
 )
@@ -91,7 +94,9 @@ add_compile_definitions(DYNAMIC_KEYMAP_ENABLE)
 add_compile_definitions(KEY_OVERRIDE_ENABLE)
 add_compile_definitions(HOLD_ON_OTHER_KEY_PRESS)
 add_compile_definitions(EXTRAKEY_ENABLE)
-
+add_compile_definitions(MOUSEKEY_ENABLE)
+add_compile_definitions(MOUSE_ENABLE)
+add_compile_definitions(POINTING_DEVICE_ENABLE)
 
 add_compile_definitions(QMK_KEYBOARD_H="quantum.h")
 add_compile_definitions(QMK_KEYMAP_CONFIG_H="${QMK_KEYBOARD_PATH}/config.h")

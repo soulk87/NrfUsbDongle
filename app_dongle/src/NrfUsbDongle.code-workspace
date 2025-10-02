@@ -61,7 +61,9 @@
 			"nrf_clock_control.h": "c",
 			"clock_control.h": "c",
 			"esb.h": "c",
-			"errno.h": "c"
+			"errno.h": "c",
+			"spi.h": "c",
+			"pmw3610.h": "c"
 		},
 		"nrf-connect.debugging.bindings": {
 			"${workspaceFolder}/app_dongle/build": "Launch build"

@@ -32,6 +32,11 @@ void delay(uint32_t ms)
   k_msleep(ms);
 }
 
+void delay_us(uint32_t us)
+{
+  k_usleep(us);
+}
+
 uint32_t millis(void)
 {
   return (uint32_t)(k_uptime_get());

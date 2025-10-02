@@ -47,6 +47,7 @@ target_include_directories(app PUBLIC
   src/common                 # 공통 코드 디렉토리
   src/common/core            # 코어 공통 기능
   src/common/hw/include      # 하드웨어 관련 헤더 파일
+  src/common/hw/include/sensor # 센서 관련 헤더 파일
   src/hw                     # 하드웨어 드라이버 디렉토리
   src/hw/driver/usb          # USB 드라이버 디렉토리
   src/hw/driver/usb/usbd_hid # USB 드라이버 디렉토리

@@ -33,10 +33,13 @@ bool hwInit(void)
   // adcInit();
   // batteryInit();
   // i2cInit();
+  spiInit();
+
+  pmw3610_init();
+  
   eepromInit();
   rfInit();
   keysInit();
-
   // delay(100);
   usbInit();
   

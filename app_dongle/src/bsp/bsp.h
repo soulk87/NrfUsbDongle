@@ -35,6 +35,7 @@ void bspInit(void);
 uint32_t bspGetCpuFreqMhz(void);
 
 void delay(uint32_t ms);
+void delay_us(uint32_t us);
 uint32_t millis(void);
 uint32_t micros(void);
 

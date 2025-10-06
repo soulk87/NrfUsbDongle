@@ -7,8 +7,12 @@
 #include <string.h>
 #include "cli.h"
 #include "usb.h"
-#include "keys.h"
 
+#ifdef RF_DONGLE_MODE_ENABLE
+#include "my_key_protocol.h"
+#else
+#include "keys.h"
+#endif
 
 /* matrix state(1:on, 0:off) */
 static matrix_row_t raw_matrix[MATRIX_ROWS]; // raw values
@@ -59,7 +63,11 @@ uint8_t matrix_scan(void)
   uint8_t curr_cols[MATRIX_COLS];
   uint32_t row_data;
 
+#ifdef RF_DONGLE_MODE_ENABLE
+  RfKeysReadBuf(curr_cols, MATRIX_COLS);
+#else
   keysReadBuf(curr_cols, MATRIX_COLS);
+#endif
 
   for (uint32_t rows=0; rows<MATRIX_ROWS; rows++)
   {
@@ -116,8 +124,9 @@ void cliCmd(cli_args_t *args)
   {
     cliPrintf("is_info_enable : %s\n", is_info_enable ? "on":"off");
 
-    
+    #ifdef DEBUG_MATRIX_SCAN_RATE
     logPrintf("Scan Rate : %d.%d KHz\n", get_matrix_scan_rate()/1000, get_matrix_scan_rate()%1000);
+    #endif
     logPrintf("Scan Time : %d us\n", key_scan_time);
 
     ret = true;

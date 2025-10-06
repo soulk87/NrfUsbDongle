@@ -17,7 +17,18 @@
 		],
 		"files.associations": {
 			"wear_leveling_config.h": "c",
-			"devicetree.h": "c"
+			"devicetree.h": "c",
+			"string.h": "c",
+			"port.h": "c",
+			"qmk.h": "c",
+			"xlocale": "c",
+			"xstring": "c",
+			"string_view": "c"
+		},
+		"files.exclude": {
+			"**/app": true,
+			"**/app_keyboard": true,
+			"**/app_dongle": false,
 		}
 	}
 }

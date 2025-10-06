@@ -12,9 +12,9 @@ extern "C" {
 
 
 bool rfInit(void);
-bool rfSend(uint8_t *p_data, uint8_t length);
-bool rfIsDataAvailable(void);
-bool rfReceive(uint8_t *p_data, uint8_t *length);
+uint32_t rfAvailable(void);
+uint32_t rfWrite(uint8_t *p_data, uint32_t length);
+uint32_t rfRead(uint8_t *p_data, uint32_t length);
 
 
 /*

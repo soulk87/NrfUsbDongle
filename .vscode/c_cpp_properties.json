@@ -19,7 +19,8 @@
                 "EXTRAKEY_ENABLE",
                 "MOUSEKEY_ENABLE",
                 "MOUSE_ENABLE",
-                "POINTING_DEVICE_ENABLE"
+                "POINTING_DEVICE_ENABLE",
+                "RF_DONGLE_MODE_ENABLE"
             ],
             "windowsSdkVersion": "10.0.22621.0",
             "compilerPath": "cl.exe",

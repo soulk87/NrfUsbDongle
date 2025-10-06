@@ -15,11 +15,18 @@
 #include <zephyr/types.h>
 
 LOG_MODULE_REGISTER(esb_driver, LOG_LEVEL_NONE);
+
+#define RF_RX_BUF_LENGTH 256
+
 static struct esb_payload rx_payload;
 static struct esb_payload tx_payload = ESB_CREATE_PAYLOAD(0,
-                                                          0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17);
+                              0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17);
 
-#if CLI_USE(HW_RF)
+static qbuffer_t rf_rx_q;
+static uint8_t rf_rx_buf[RF_RX_BUF_LENGTH];
+static struct k_mutex rf_rx_mutex;
+
+#ifdef _USE_CLI_HW_RF
 static void cliCmd(cli_args_t *args);
 #endif
 static int clocks_start(void);
@@ -30,19 +37,20 @@ bool rfInit(void)
 {
   int err;
 
-  LOG_INF("Enhanced ShockBurst prx sample");
+  qbufferCreate(&rf_rx_q, rf_rx_buf, RF_RX_BUF_LENGTH);
+  k_mutex_init(&rf_rx_mutex);
 
   err = clocks_start();
   if (err)
   {
-    return false;
+  return false;
   }
 
   err = esb_initialize();
   if (err)
   {
     LOG_ERR("ESB initialization failed, err %d", err);
-    return false;
+  return false;
   }
   LOG_INF("Initialization complete");
 
@@ -53,7 +61,7 @@ bool rfInit(void)
   if (err)
   {
     LOG_ERR("Write payload, err %d", err);
-    return false;
+  return false;
   }
 
   LOG_INF("Setting up for packet receiption");
@@ -62,29 +70,54 @@ bool rfInit(void)
   if (err)
   {
     LOG_ERR("RX setup failed, err %d", err);
-    return false;
+  return false;
   }
 #endif
 
-#if CLI_USE(HW_RF)
+#ifdef _USE_CLI_HW_RF
   cliAdd("rf", cliCmd);
 #endif
   return true;
 }
 
-bool rfSend(uint8_t *p_data, uint8_t length)
+uint32_t rfAvailable(void)
 {
-  return true;
+  uint32_t ret;
+  
+  k_mutex_lock(&rf_rx_mutex, K_FOREVER);
+  ret = qbufferAvailable(&rf_rx_q);
+  k_mutex_unlock(&rf_rx_mutex);
+  
+  return ret;
 }
 
-bool rfIsDataAvailable(void)
+uint32_t rfWrite(uint8_t *p_data, uint32_t length)
 {
-  return true;
+#if HW_RF_MODE == _DEF_RF_MODE_TX
+  if (length > ESB_MAX_PAYLOAD_LENGTH)
+  length = ESB_MAX_PAYLOAD_LENGTH;
+
+  memcpy(tx_payload.data, p_data, length);
+  tx_payload.length = length;
+
+  if (esb_write_payload(&tx_payload) == 0)
+  return length;
+  else
+  return 0;
+#else
+  return 0;
+#endif
 }
 
-bool rfReceive(uint8_t *p_data, uint8_t *length)
+uint32_t rfRead(uint8_t *p_data, uint32_t length)
 {
-  return true;
+  uint32_t ret;
+  
+  k_mutex_lock(&rf_rx_mutex, K_FOREVER);
+  ret = qbufferRead(&rf_rx_q, p_data, length);
+  k_mutex_unlock(&rf_rx_mutex);
+  
+  return ret;
 }
 
 static void event_handler(struct esb_evt const *event)
@@ -93,27 +126,19 @@ static void event_handler(struct esb_evt const *event)
   {
   case ESB_EVENT_TX_SUCCESS:
     LOG_DBG("TX SUCCESS EVENT");
-    break;
+  break;
   case ESB_EVENT_TX_FAILED:
     LOG_DBG("TX FAILED EVENT");
-    break;
+  break;
   case ESB_EVENT_RX_RECEIVED:
-    if (esb_read_rx_payload(&rx_payload) == 0)
-    {
-      LOG_DBG("Packet received, len %d : "
-              "0x%02x, 0x%02x, 0x%02x, 0x%02x, "
-              "0x%02x, 0x%02x, 0x%02x, 0x%02x",
-              rx_payload.length, rx_payload.data[0],
-              rx_payload.data[1], rx_payload.data[2],
-              rx_payload.data[3], rx_payload.data[4],
-              rx_payload.data[5], rx_payload.data[6],
-              rx_payload.data[7]);
-    }
-    else
-    {
-      LOG_ERR("Error while reading rx packet");
-    }
-    break;
+  if (esb_read_rx_payload(&rx_payload) == 0)
+  {
+    // 수신된 데이터를 큐에 저장
+    k_mutex_lock(&rf_rx_mutex, K_FOREVER);
+    qbufferWrite(&rf_rx_q, rx_payload.data, rx_payload.length);
+    k_mutex_unlock(&rf_rx_mutex);
+  }
+  break;
   }
 }
 
@@ -128,7 +153,7 @@ static int clocks_start(void)
   if (!clk_mgr)
   {
     LOG_ERR("Unable to get the Clock manager");
-    return -ENXIO;
+  return -ENXIO;
   }
 
   sys_notify_init_spinwait(&clk_cli.notify);
@@ -137,16 +162,16 @@ static int clocks_start(void)
   if (err < 0)
   {
     LOG_ERR("Clock request failed: %d", err);
-    return err;
+  return err;
   }
 
   do
   {
-    err = sys_notify_fetch_result(&clk_cli.notify, &res);
-    if (!err && res)
+  err = sys_notify_fetch_result(&clk_cli.notify, &res);
+  if (!err && res)
     {
       LOG_ERR("Clock could not be started: %d", res);
-      return res;
+    return res;
     }
   } while (err);
 
@@ -155,7 +180,6 @@ static int clocks_start(void)
 }
 
 #if HW_RF_MODE == _DEF_RF_MODE_TX
-
 static int esb_initialize(void)
 {
   int err;
@@ -176,7 +200,7 @@ static int esb_initialize(void)
   config.selective_auto_ack = true;
   if (IS_ENABLED(CONFIG_ESB_FAST_SWITCHING))
   {
-    config.use_fast_ramp_up = true;
+  config.use_fast_ramp_up = true;
   }
 
   err = esb_init(&config);
@@ -228,7 +252,7 @@ static int esb_initialize(void)
   config.selective_auto_ack = true;
   if (IS_ENABLED(CONFIG_ESB_FAST_SWITCHING))
   {
-    config.use_fast_ramp_up = true;
+  config.use_fast_ramp_up = true;
   }
 
   err = esb_init(&config);
@@ -260,25 +284,24 @@ static int esb_initialize(void)
 
 #endif
 
-#if CLI_USE(HW_RF)
+#ifdef _USE_CLI_HW_RF
 void cliCmd(cli_args_t *args)
 {
-  bool ret = false;
-
   if (args->argc == 1 && args->isStr(0, "tx"))
   {
-    esb_flush_tx();
-
-    esb_write_payload(&tx_payload);
-
-    tx_payload.data[1]++;
-
-    ret = true;
+  esb_flush_tx();
+  esb_write_payload(&tx_payload);
+  tx_payload.data[1]++;
+  cliPrintf("rf tx\n");
   }
-
-  if (ret == false)
+  else if (args->argc == 1 && args->isStr(0, "rx"))
   {
-    cliPrintf("rf tx\n");
+  cliPrintf("rf available: %d\n", rfAvailable());
+  }
+  else
+  {
+  cliPrintf("rf tx\n");
+  cliPrintf("rf rx\n");
   }
 }
 #endif

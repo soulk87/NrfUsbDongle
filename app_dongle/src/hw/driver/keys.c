@@ -23,7 +23,7 @@ static struct k_thread key_thread_data;
 #define lockGpio()   // xSemaphoreTake(mutex_gpio, portMAX_DELAY);
 #define unLockGpio() // xSemaphoreGive(mutex_gpio);
 
-#if CLI_USE(HW_KEYS)
+#ifdef _USE_CLI_HW_KEYS
 static void cliCmd(cli_args_t *args);
 #endif
 
@@ -63,7 +63,7 @@ bool keysInit(void)
                   NULL, NULL, NULL,
                   THREAD_PRIORITY, 0, K_NO_WAIT);
 
-#if CLI_USE(HW_KEYS)
+#ifdef _USE_CLI_HW_KEYS
   cliAdd("keys", cliCmd);
 #endif
 
@@ -200,7 +200,7 @@ static void keysThread(void *arg1, void *arg2, void *arg3)
   }
 }
 
-#if CLI_USE(HW_KEYS)
+#ifdef _USE_CLI_HW_KEYS
 void cliCmd(cli_args_t *args)
 {
   bool ret = false;

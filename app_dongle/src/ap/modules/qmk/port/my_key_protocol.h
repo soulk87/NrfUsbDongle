@@ -13,6 +13,8 @@ bool key_protocol_init(void);
 void key_protocol_update(void);
 
 void RfKeysReadBuf(uint8_t *buf, uint32_t len);
+
+bool RfMotionRead(int32_t *x, int32_t *y);
 #endif
 
 #endif /* MY_KEY_PROTOCOL_H_ */

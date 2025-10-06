@@ -52,6 +52,12 @@ static void cli_command(cli_args_t *args);
 // 내부 Matrix 버퍼
 static uint8_t rx_matrix[MATRIX_COLS] = {0};
 
+// Trackball movement
+int32_t x_movement = 0;
+int32_t y_movement = 0;
+bool is_moving = false;
+
+
 bool key_protocol_init(void)
 {
     // Initialize the RF module
@@ -240,7 +246,6 @@ void RfKeysReadBuf(uint8_t *buf, uint32_t len)
   memcpy(buf, rx_matrix, len);
 }
 
-
 static void process_trackball_data(uint8_t device_id, uint8_t *payload, uint8_t length)
 {
     // Make sure we have enough data for X and Y (2 bytes each)
@@ -248,13 +253,23 @@ static void process_trackball_data(uint8_t device_id, uint8_t *payload, uint8_t 
     {
         return;
     }
-    
-    // Extract X and Y movement (little-endian int16_t)
-    int16_t x_movement = (int16_t)((payload[1] << 8) | payload[0]);
-    int16_t y_movement = (int16_t)((payload[3] << 8) | payload[2]);
-    
-    // Forward the trackball data to the pointing device
-    // pmw3610_motion_update(x_movement, y_movement);
+
+   x_movement = (int32_t)((payload[1] << 8) | payload[0]);
+   y_movement = (int32_t)((payload[3] << 8) | payload[2]);
+   is_moving = true;
+}
+
+bool RfMotionRead(int32_t *x, int32_t *y)
+{
+    if (is_moving) 
+    {
+        *x = x_movement;
+        *y = y_movement;
+        is_moving = false; // Reset movement flag after reading
+        return true;
+    }
+    return false;
+
 }
 
 static void cli_command(cli_args_t *args)

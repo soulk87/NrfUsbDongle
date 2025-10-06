@@ -570,7 +570,7 @@ static int pmw3610_configure(void)
 
 bool pmw3610_init(void)
 {
-    const struct pmw3610_config *cfg = &pmw3610_cfg;
+    // const struct pmw3610_config *cfg = &pmw3610_cfg;
 
     int ret;
 

@@ -27,8 +27,8 @@
 		},
 		"files.exclude": {
 			"**/app": true,
-			"**/app_keyboard": true,
-			"**/app_dongle": false,
+			"**/app_keyboard": false,
+			"**/app_dongle": true,
 		}
 	}
 }

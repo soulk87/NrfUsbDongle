@@ -5,7 +5,7 @@
 #include "rtc.h"
 #include "cli.h"
 
-#if CLI_USE(HW_RESET)
+#ifdef _USE_CLI_HW_RESET
 static void cliReset(cli_args_t *args);
 #endif
 
@@ -19,7 +19,7 @@ bool resetInit(void)
 
   is_init = true;
 
-#if CLI_USE(HW_RESET)  
+#ifdef _USE_CLI_HW_RESET
   cliAdd("reset", cliReset);
 #endif
 
@@ -43,7 +43,7 @@ void resetToReset(void)
 
 
 
-#if CLI_USE(HW_RESET)
+#ifdef _USE_CLI_HW_RESET
 void cliReset(cli_args_t *args)
 {
   bool ret = false;

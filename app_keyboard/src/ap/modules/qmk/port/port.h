@@ -7,7 +7,7 @@
 #include "eeconfig.h"
 #include "kill_switch.h"
 #include "kkuk.h"
-
+#include "my_key_protocol.h"
 
 
 #define QMK_BUILDDATE   "2024-04-23-11:29:54"

@@ -18,7 +18,10 @@ bool qmkInit(void)
   keyboard_setup();
   keyboard_init();
 
-  
+  #ifdef RF_DONGLE_MODE_ENABLE
+  key_protocol_init();
+  #endif
+
   is_suspended = usbIsSuspended();
 
   // logPrintf("[  ] qmkInit()\n");
@@ -33,6 +36,9 @@ bool qmkInit(void)
 
 void qmkUpdate(void)
 {
+  #ifdef RF_DONGLE_MODE_ENABLE
+  key_protocol_update();
+  #endif
   keyboard_task();
   eeprom_task();
   idle_task();

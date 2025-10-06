@@ -11,9 +11,25 @@
 
 #define DYNAMIC_KEYMAP_LAYER_COUNT  8
 
+
+
+#ifdef RF_DONGLE_MODE_ENABLE
+
+// Key matrix dimensions
+#define LEFT_COLS 1
+#define LEFT_ROWS 3
+#define RIGHT_COLS 1
+#define RIGHT_ROWS 3
+
+#define MATRIX_COLS (LEFT_COLS + RIGHT_COLS)
+#define MATRIX_ROWS (LEFT_ROWS > RIGHT_ROWS ? LEFT_ROWS : RIGHT_ROWS)
+#else
+
 #define MATRIX_ROWS                 3
 #define MATRIX_COLS                 2
 
+#endif
+
 #define DEBOUNCE                    5
 
-#define DEBUG_MATRIX_SCAN_RATE
+// #define DEBUG_MATRIX_SCAN_RATE

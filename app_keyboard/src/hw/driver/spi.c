@@ -74,10 +74,10 @@ void cliSpi(cli_args_t *args)
 {
   bool ret = false;
   /** @brief Transmit buffer initialized with the specified message ( @ref MSG_TO_SEND ). */
-  static uint8_t m_tx_buffer[16] = {0};
+  // static uint8_t m_tx_buffer[16] = {0};
 
   /** @brief Receive buffer defined with the size to store specified message ( @ref MSG_TO_SEND ). */
-  static uint8_t m_rx_buffer[16];
+  // static uint8_t m_rx_buffer[16];
 
   if (args->argc == 1)
   {

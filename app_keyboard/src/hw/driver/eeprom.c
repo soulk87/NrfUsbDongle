@@ -6,7 +6,8 @@
 #include "wear_leveling/wear_leveling.h"
 
 
-#if CLI_USE(HW_EEPROM)
+
+#ifdef _USE_CLI_HW_EEPROM
 void cliEeprom(cli_args_t *args);
 #endif
 
@@ -44,7 +45,7 @@ bool eepromInit()
   // }
   wear_leveling_init();
 
-#if CLI_USE(HW_EEPROM)
+#ifdef _USE_CLI_HW_EEPROM
   cliAdd("eeprom", cliEeprom);
 #endif
 
@@ -134,7 +135,7 @@ bool eepromFormat(void)
 
 
 
-#if CLI_USE(HW_EEPROM)
+#ifdef _USE_CLI_HW_EEPROM
 void cliEeprom(cli_args_t *args)
 {
   bool ret = true;

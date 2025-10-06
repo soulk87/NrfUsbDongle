@@ -97,6 +97,7 @@ add_compile_definitions(EXTRAKEY_ENABLE)
 add_compile_definitions(MOUSEKEY_ENABLE)
 add_compile_definitions(MOUSE_ENABLE)
 add_compile_definitions(POINTING_DEVICE_ENABLE)
+add_compile_definitions(RF_DONGLE_MODE_ENABLE)
 
 add_compile_definitions(QMK_KEYBOARD_H="quantum.h")
 add_compile_definitions(QMK_KEYMAP_CONFIG_H="${QMK_KEYBOARD_PATH}/config.h")

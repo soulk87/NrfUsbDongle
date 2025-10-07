@@ -94,8 +94,8 @@ uint32_t rfAvailable(void)
 uint32_t rfWrite(uint8_t *p_data, uint32_t length)
 {
 #if HW_RF_MODE == _DEF_RF_MODE_TX
-  if (length > ESB_MAX_PAYLOAD_LENGTH)
-  length = ESB_MAX_PAYLOAD_LENGTH;
+  if (length > 30)
+  length = 30;
 
   memcpy(tx_payload.data, p_data, length);
   tx_payload.length = length;

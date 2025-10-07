@@ -39,7 +39,7 @@ void apMain(void)
     //   index++;
     // }
     qmkUpdate();
-    delay(1);
+    delay(10);
   }
 }
 

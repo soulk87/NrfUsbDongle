@@ -49,6 +49,11 @@ static void process_key_data(uint8_t device_id, uint8_t *payload, uint8_t length
 static void process_trackball_data(uint8_t device_id, uint8_t *payload, uint8_t length);
 static void cli_command(cli_args_t *args);
 
+// TX 관련 버퍼 및 변수
+static uint8_t tx_buffer[MAX_PACKET_SIZE];
+static uint32_t tx_packets = 0;
+static uint32_t tx_errors = 0;
+
 // 내부 Matrix 버퍼
 static uint8_t rx_matrix[MATRIX_COLS] = {0};
 
@@ -254,9 +259,15 @@ static void process_trackball_data(uint8_t device_id, uint8_t *payload, uint8_t 
         return;
     }
 
-   x_movement = (int32_t)((payload[1] << 8) | payload[0]);
-   y_movement = (int32_t)((payload[3] << 8) | payload[2]);
-   is_moving = true;
+    // 부호 있는 16비트 정수로 올바르게 변환 (little-endian)
+    // int16_t는 부호 확장이 필요함
+    int16_t x_val = (int16_t)((payload[1] << 8) | payload[0]);
+    int16_t y_val = (int16_t)((payload[3] << 8) | payload[2]);
+    
+    // 값을 int32_t로 저장하되, 부호 확장이 올바르게 처리되도록 함
+    x_movement = (int32_t)x_val;
+    y_movement = (int32_t)y_val;
+    is_moving = true;
 }
 
 bool RfMotionRead(int32_t *x, int32_t *y)
@@ -272,24 +283,228 @@ bool RfMotionRead(int32_t *x, int32_t *y)
 
 }
 
+// 패킷 조립 및 전송 함수
+static bool tx_packet_prepare(uint8_t device_id, uint8_t packet_type, uint8_t *payload, uint8_t length)
+{
+    uint8_t packet_length = HEADER_SIZE + length + FOOTER_SIZE;
+    uint8_t checksum = 0;
+    uint8_t i;
+    
+    if (length > MAX_PAYLOAD)
+    {
+        tx_errors++;
+        return false;
+    }
+    
+    // 헤더 구성
+    tx_buffer[0] = START_BYTE;         // Start byte
+    tx_buffer[1] = device_id;          // Device ID
+    tx_buffer[2] = 0x01;               // Version (현재 0x01 고정)
+    tx_buffer[3] = packet_type;        // Packet type
+    tx_buffer[4] = length;             // Payload length
+    
+    // 페이로드 복사
+    memcpy(&tx_buffer[HEADER_SIZE], payload, length);
+    
+    // 체크섬 계산 (XOR)
+    for (i = 0; i < HEADER_SIZE + length; i++)
+    {
+        checksum ^= tx_buffer[i];
+    }
+    
+    // 체크섬 추가
+    tx_buffer[HEADER_SIZE + length] = checksum;
+    
+    return true;
+}
+
+// 키 데이터 전송 함수
+bool key_protocol_send_key_data(uint8_t device_id, uint8_t *key_matrix, uint8_t column_count)
+{
+    if (column_count > MAX_PAYLOAD - 1)
+    {
+        tx_errors++;
+        return false;
+    }
+    
+    // 페이로드 준비: column count + key states
+    uint8_t payload[MAX_PAYLOAD];
+    payload[0] = column_count;
+    memcpy(&payload[1], key_matrix, column_count);
+    
+    // 패킷 조립
+    if (!tx_packet_prepare(device_id, PACKET_TYPE_KEY, payload, column_count + 1))
+    {
+        return false;
+    }
+    
+    // 패킷 전송
+    uint32_t packet_length = HEADER_SIZE + (column_count + 1) + FOOTER_SIZE;
+    uint32_t sent_len = rfWrite(tx_buffer, packet_length);
+    
+    if (sent_len == packet_length)
+    {
+        tx_packets++;
+        return true;
+    }
+    else
+    {
+        tx_errors++;
+        return false;
+    }
+}
+
+// 트랙볼 데이터 전송 함수
+bool key_protocol_send_trackball_data(uint8_t device_id, int16_t x, int16_t y)
+{
+    uint8_t payload[4];
+    
+    // 디버그 출력 추가 (필요시)
+    // logPrintf("Sending trackball data: x=%d, y=%d\n", x, y);
+    
+    // Little-endian으로 X, Y 좌표 저장
+    // 16비트 값을 8비트 바이트 두 개로 분리
+    payload[0] = (uint8_t)(x & 0xFF);         // 하위 바이트
+    payload[1] = (uint8_t)((x >> 8) & 0xFF);  // 상위 바이트
+    payload[2] = (uint8_t)(y & 0xFF);         // 하위 바이트
+    payload[3] = (uint8_t)((y >> 8) & 0xFF);  // 상위 바이트
+    
+    // 패킷 조립
+    if (!tx_packet_prepare(device_id, PACKET_TYPE_TRACKBALL, payload, 4))
+    {
+        return false;
+    }
+    
+    // 패킷 전송
+    uint32_t sent_len = rfWrite(tx_buffer, HEADER_SIZE + 4 + FOOTER_SIZE);
+    
+    if (sent_len == (HEADER_SIZE + 4 + FOOTER_SIZE))
+    {
+        tx_packets++;
+        return true;
+    }
+    else
+    {
+        tx_errors++;
+        return false;
+    }
+}
+
+// 시스템 상태 전송 함수
+bool key_protocol_send_system_data(uint8_t device_id, uint8_t *system_data, uint8_t length)
+{
+    // 패킷 조립
+    if (!tx_packet_prepare(device_id, PACKET_TYPE_SYSTEM, system_data, length))
+    {
+        return false;
+    }
+    
+    // 패킷 전송
+    uint32_t sent_len = rfWrite(tx_buffer, HEADER_SIZE + length + FOOTER_SIZE);
+    
+    if (sent_len == (HEADER_SIZE + length + FOOTER_SIZE))
+    {
+        tx_packets++;
+        return true;
+    }
+    else
+    {
+        tx_errors++;
+        return false;
+    }
+}
+
+// 배터리 정보 전송 함수
+bool key_protocol_send_battery_data(uint8_t device_id, uint8_t battery_level)
+{
+    uint8_t payload = battery_level;
+    
+    // 패킷 조립
+    if (!tx_packet_prepare(device_id, PACKET_TYPE_BATTERY, &payload, 1))
+    {
+        return false;
+    }
+    
+    // 패킷 전송
+    uint32_t sent_len = rfWrite(tx_buffer, HEADER_SIZE + 1 + FOOTER_SIZE);
+    
+    if (sent_len == (HEADER_SIZE + 1 + FOOTER_SIZE))
+    {
+        tx_packets++;
+        return true;
+    }
+    else
+    {
+        tx_errors++;
+        return false;
+    }
+}
+
+// cli_command 함수 수정 - TX 통계 추가
 static void cli_command(cli_args_t *args)
 {
     if (args->argc == 1 && args->isStr(0, "info"))
     {
         cliPrintf("Key Protocol Status\n");
         cliPrintf("-------------------\n");
-        cliPrintf("Total packets: %u\n", packet_total);
-        cliPrintf("Error packets: %u\n", packet_errors);
+        cliPrintf("Total RX packets: %u\n", packet_total);
+        cliPrintf("RX error packets: %u\n", packet_errors);
         cliPrintf("Key packets: %u\n", key_packets);
         cliPrintf("Trackball packets: %u\n", trackball_packets);
+        cliPrintf("Total TX packets: %u\n", tx_packets);
+        cliPrintf("TX error packets: %u\n", tx_errors);
         cliPrintf("Last Device ID: 0x%02X\n", last_device_id);
         cliPrintf("Last Packet Type: 0x%02X\n", last_packet_type);
         cliPrintf("Last Payload Length: %u\n", last_payload_length);
         return;
     }
     
+    // 새로운 테스트 명령어 추가
+    if (args->argc == 2 && args->isStr(0, "test_tx"))
+    {
+        uint8_t test_type = (uint8_t)args->getData(1);
+        bool result = false;
+        
+        switch (test_type)
+        {
+            case 1: // 키 데이터 테스트
+            {
+                uint8_t key_data[3] = {0x01, 0x02, 0x03};
+                result = key_protocol_send_key_data(DEVICE_ID_LEFT, key_data, 3);
+                break;
+            }
+            case 2: // 트랙볼 데이터 테스트
+                result = key_protocol_send_trackball_data(DEVICE_ID_LEFT, 10, -5);
+                break;
+            case 3: // 배터리 정보 테스트
+                result = key_protocol_send_battery_data(DEVICE_ID_LEFT, 85); // 85% 배터리
+                break;
+            default:
+                cliPrintf("Invalid test type\n");
+                break;
+        }
+        
+        cliPrintf("TX Test %s\n", result ? "SUCCESS" : "FAILED");
+        return;
+    }
+    
+    // 트랙볼 테스트 명령어 확장
+    if (args->argc == 4 && args->isStr(0, "test_trackball"))
+    {
+        int16_t x = (int16_t)args->getData(1);
+        int16_t y = (int16_t)args->getData(2);
+        uint8_t device = (uint8_t)args->getData(3);
+        
+        bool result = key_protocol_send_trackball_data(device, x, y);
+        cliPrintf("Trackball TX Test (x=%d, y=%d, dev=%d): %s\n", 
+                 x, y, device, result ? "SUCCESS" : "FAILED");
+        return;
+    }
+    
     // Show usage
     cliPrintf("keyproto info\n");
+    cliPrintf("keyproto test_tx [1:key, 2:trackball, 3:battery]\n");
+    cliPrintf("keyproto test_trackball [x] [y] [device_id]\n");
 }
 
 #endif

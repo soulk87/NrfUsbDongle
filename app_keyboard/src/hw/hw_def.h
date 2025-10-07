@@ -69,7 +69,7 @@
 // #define      HW_ADC_MAX_CH          1
 
 #define _USE_HW_RF
-#define    HW_RF_MODE   _DEF_RF_MODE_RX
+#define    HW_RF_MODE   _DEF_RF_MODE_TX
 
 
 #define _USE_HW_SPI

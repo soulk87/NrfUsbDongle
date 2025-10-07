@@ -10,7 +10,8 @@
 	],
 	"settings": {
 		"nrf-connect.applications": [
-			"${workspaceFolder}/app_dongle"
+			"${workspaceFolder}/app_dongle",
+			"${workspaceFolder}\\app_keyboard"
 		],
 		"nrf-connect.boardRoots": [
 			"${workspaceFolder}/boards"
@@ -23,7 +24,8 @@
 			"qmk.h": "c",
 			"xlocale": "c",
 			"xstring": "c",
-			"string_view": "c"
+			"string_view": "c",
+			"my_key_protocol.h": "c"
 		},
 		"files.exclude": {
 			"**/app": true,

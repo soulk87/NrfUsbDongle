@@ -15,7 +15,7 @@ bool rfInit(void);
 uint32_t rfAvailable(void);
 uint32_t rfWrite(uint8_t *p_data, uint32_t length);
 uint32_t rfRead(uint8_t *p_data, uint32_t length);
-
+bool rfBufferFlush(void);
 
 /*
 bool rfSetTxPower(int8_t power);

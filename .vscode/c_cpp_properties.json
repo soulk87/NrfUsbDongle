@@ -4,7 +4,8 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "C:\\GIT\\NrfUsbDongle\\app\\src\\common\\hw\\include",
+                "C:\\GIT\\NrfUsbDongle\\app_dongle\\src\\common\\hw\\include",
+                // "C:\\GIT\\NrfUsbDongle\\app\\src\\common\\hw\\include",
                 "C:/ncs/v3.0.0/zephyr/include"
             ],
             "defines": [

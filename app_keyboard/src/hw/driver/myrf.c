@@ -91,6 +91,15 @@ uint32_t rfAvailable(void)
   return ret;
 }
 
+bool rfBufferFlush(void)
+{
+  k_mutex_lock(&rf_rx_mutex, K_FOREVER);
+  qbufferFlush(&rf_rx_q);
+  k_mutex_unlock(&rf_rx_mutex);
+  return true;
+}
+
+
 uint32_t rfWrite(uint8_t *p_data, uint32_t length)
 {
 #if HW_RF_MODE == _DEF_RF_MODE_TX

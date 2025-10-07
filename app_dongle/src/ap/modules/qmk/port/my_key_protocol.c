@@ -6,41 +6,27 @@
 #ifdef RF_DONGLE_MODE_ENABLE
 
 // Protocol constants
-#define START_BYTE      0xAA
-#define DEVICE_ID_LEFT  0x01
+#define START_BYTE 0xAA
+#define DEVICE_ID_LEFT 0x01
 #define DEVICE_ID_RIGHT 0x02
 
 // Packet types
-#define PACKET_TYPE_KEY       0x01
+#define PACKET_TYPE_KEY 0x01
 #define PACKET_TYPE_TRACKBALL 0x02
-#define PACKET_TYPE_SYSTEM    0x03
-#define PACKET_TYPE_BATTERY   0x04
+#define PACKET_TYPE_SYSTEM 0x03
+#define PACKET_TYPE_BATTERY 0x04
 
 // Header size (Start + DeviceID + Version + PacketType + Length)
-#define HEADER_SIZE     5
+#define HEADER_SIZE 5
 // Footer size (Checksum)
-#define FOOTER_SIZE     1
+#define FOOTER_SIZE 1
 // Max payload size
-#define MAX_PAYLOAD     32
+#define MAX_PAYLOAD 32
 // Total max packet size
 #define MAX_PACKET_SIZE (HEADER_SIZE + MAX_PAYLOAD + FOOTER_SIZE)
 
 // Buffer for storing received data
 static uint8_t rx_buffer[MAX_PACKET_SIZE];
-static uint32_t rx_index = 0;
-static bool packet_received = false;
-static bool is_parsing = false;
-
-// Statistics
-static uint32_t packet_total = 0;
-static uint32_t packet_errors = 0;
-static uint32_t key_packets = 0;
-static uint32_t trackball_packets = 0;
-
-// Last received packet info for debugging
-static uint8_t last_device_id = 0;
-static uint8_t last_packet_type = 0;
-static uint8_t last_payload_length = 0;
 
 // Forward declarations
 static bool parse_packet(void);
@@ -49,10 +35,13 @@ static void process_key_data(uint8_t device_id, uint8_t *payload, uint8_t length
 static void process_trackball_data(uint8_t device_id, uint8_t *payload, uint8_t length);
 static void cli_command(cli_args_t *args);
 
+// Debugging and statistics
+static uint32_t tx_errors = 0;
+static uint32_t rx_errors = 0;
+
 // TX 관련 버퍼 및 변수
 static uint8_t tx_buffer[MAX_PACKET_SIZE];
 static uint32_t tx_packets = 0;
-static uint32_t tx_errors = 0;
 
 // 내부 Matrix 버퍼
 static uint8_t rx_matrix[MATRIX_COLS] = {0};
@@ -62,7 +51,6 @@ int32_t x_movement = 0;
 int32_t y_movement = 0;
 bool is_moving = false;
 
-
 bool key_protocol_init(void)
 {
     // Initialize the RF module
@@ -70,142 +58,79 @@ bool key_protocol_init(void)
     {
         return false;
     }
-    
+
     // Register CLI command for debugging
     cliAdd("keyproto", cli_command);
-    
+
     return true;
 }
 
 void key_protocol_update(void)
 {
-    uint8_t data;
-    uint32_t rx_len;
-    
+    uint32_t rx_len = rfAvailable();
+    bool is_error = false;
     // Check if RF has data available
-    if (rfAvailable() > 0)
+    if (rx_len > 0)
     {
-        // Read one byte at a time to properly parse the protocol
-        rx_len = rfRead(&data, 1);
-        
-        if (rx_len == 1)
+        if (rx_len > MAX_PACKET_SIZE)
+            is_error = true;
+
+        if (!rfRead(rx_buffer, rx_len))
+            is_error = true;
+
+        // Basic validation
+        if (rx_buffer[0] != START_BYTE)
+            is_error = true;
+
+        // Checksum validation
+        if (!validate_checksum(rx_buffer, rx_len))
+            is_error = true;
+
+
+        if (is_error)
         {
-            // Check if we're waiting for a start byte
-            if (!is_parsing)
-            {
-                // If we received a start byte, begin parsing
-                if (data == START_BYTE)
-                {
-                    rx_buffer[0] = START_BYTE;
-                    rx_index = 1;
-                    is_parsing = true;
-                }
-            }
-            else
-            {
-                // If we're already parsing, add the byte to the buffer
-                if (rx_index < MAX_PACKET_SIZE)
-                {
-                    rx_buffer[rx_index++] = data;
-                    
-                    // Check if we've received the header
-                    if (rx_index == HEADER_SIZE)
-                    {
-                        // Get the payload length
-                        uint8_t payload_length = rx_buffer[4];
-                        
-                        // Validate payload length
-                        if (payload_length > MAX_PAYLOAD)
-                        {
-                            // Invalid payload length, reset and wait for next packet
-                            is_parsing = false;
-                            rx_index = 0;
-                            packet_errors++;
-                        }
-                    }
-                    // Check if we've received the complete packet
-                    else if (rx_index >= HEADER_SIZE && 
-                            (rx_index == (HEADER_SIZE + rx_buffer[4] + FOOTER_SIZE)))
-                    {
-                        // We have a complete packet, parse it
-                        packet_received = true;
-                        is_parsing = false;
-                        
-                        // Process the packet
-                        if (parse_packet())
-                        {
-                            packet_total++;
-                        }
-                        else
-                        {
-                            packet_errors++;
-                        }
-                        
-                        // Reset for next packet
-                        rx_index = 0;
-                    }
-                }
-                else
-                {
-                    // Buffer overflow, reset and wait for next packet
-                    is_parsing = false;
-                    rx_index = 0;
-                    packet_errors++;
-                }
-            }
+            rx_errors++;
+            rfBufferFlush();
         }
+        else
+        {
+            // Parse the packet
+            parse_packet();
+        }
+
     }
 }
 
 static bool parse_packet(void)
 {
-    // Check minimum packet size
-    if (rx_index < (HEADER_SIZE + FOOTER_SIZE))
-    {
-        return false;
-    }
-    
     // Extract packet info
     uint8_t device_id = rx_buffer[1];
     uint8_t version = rx_buffer[2];
     uint8_t packet_type = rx_buffer[3];
     uint8_t payload_length = rx_buffer[4];
     uint8_t *payload = &rx_buffer[5];
-    
-    // Store for debugging
-    last_device_id = device_id;
-    last_packet_type = packet_type;
-    last_payload_length = payload_length;
-    
-    // Validate checksum
-    if (!validate_checksum(rx_buffer, rx_index))
-    {
-        return false;
-    }
-    
+
     // Process based on packet type
     switch (packet_type)
     {
-        case PACKET_TYPE_KEY:
-            process_key_data(device_id, payload, payload_length);
-            key_packets++;
-            break;
-            
-        case PACKET_TYPE_TRACKBALL:
-            process_trackball_data(device_id, payload, payload_length);
-            trackball_packets++;
-            break;
-            
-        case PACKET_TYPE_SYSTEM:
-        case PACKET_TYPE_BATTERY:
-            // Not implemented yet
-            break;
-            
-        default:
-            // Unknown packet type
-            return false;
+    case PACKET_TYPE_KEY:
+        process_key_data(device_id, payload, payload_length);
+        break;
+
+    case PACKET_TYPE_TRACKBALL:
+        process_trackball_data(device_id, payload, payload_length);
+        break;
+
+    case PACKET_TYPE_SYSTEM:
+    case PACKET_TYPE_BATTERY:
+        // Not implemented yet
+        break;
+
+    default:
+        // Unknown packet type
+        return false;
     }
-    
+
     return true;
 }
 
@@ -215,29 +140,31 @@ static bool validate_checksum(uint8_t *data, uint32_t length)
     {
         return false;
     }
-    
+
     uint8_t checksum = 0;
-    
+
     // Calculate XOR checksum of all bytes except the last one (which is the checksum)
     for (uint32_t i = 0; i < length - 1; i++)
     {
         checksum ^= data[i];
     }
-    
+
     // Compare with the received checksum
     return (checksum == data[length - 1]);
 }
 
 static void process_key_data(uint8_t device_id, uint8_t *payload, uint8_t length)
 {
-    if(device_id == DEVICE_ID_LEFT)
+    if (device_id == DEVICE_ID_LEFT)
     {
-        if(length > LEFT_COLS) length = LEFT_COLS;
+        if (length > LEFT_COLS)
+            length = LEFT_COLS;
         memcpy(&rx_matrix[0], payload, length);
     }
-    else if(device_id == DEVICE_ID_RIGHT)
+    else if (device_id == DEVICE_ID_RIGHT)
     {
-        if(length > RIGHT_COLS) length = RIGHT_COLS;
+        if (length > RIGHT_COLS)
+            length = RIGHT_COLS;
         memcpy(&rx_matrix[LEFT_COLS], payload, length);
     }
     else
@@ -248,7 +175,7 @@ static void process_key_data(uint8_t device_id, uint8_t *payload, uint8_t length
 
 void RfKeysReadBuf(uint8_t *buf, uint32_t len)
 {
-  memcpy(buf, rx_matrix, len);
+    memcpy(buf, rx_matrix, len);
 }
 
 static void process_trackball_data(uint8_t device_id, uint8_t *payload, uint8_t length)
@@ -263,7 +190,7 @@ static void process_trackball_data(uint8_t device_id, uint8_t *payload, uint8_t 
     // int16_t는 부호 확장이 필요함
     int16_t x_val = (int16_t)((payload[1] << 8) | payload[0]);
     int16_t y_val = (int16_t)((payload[3] << 8) | payload[2]);
-    
+
     // 값을 int32_t로 저장하되, 부호 확장이 올바르게 처리되도록 함
     x_movement = (int32_t)x_val;
     y_movement = (int32_t)y_val;
@@ -272,7 +199,7 @@ static void process_trackball_data(uint8_t device_id, uint8_t *payload, uint8_t 
 
 bool RfMotionRead(int32_t *x, int32_t *y)
 {
-    if (is_moving) 
+    if (is_moving)
     {
         *x = x_movement;
         *y = y_movement;
@@ -280,7 +207,6 @@ bool RfMotionRead(int32_t *x, int32_t *y)
         return true;
     }
     return false;
-
 }
 
 // 패킷 조립 및 전송 함수
@@ -289,32 +215,32 @@ static bool tx_packet_prepare(uint8_t device_id, uint8_t packet_type, uint8_t *p
     uint8_t packet_length = HEADER_SIZE + length + FOOTER_SIZE;
     uint8_t checksum = 0;
     uint8_t i;
-    
+
     if (length > MAX_PAYLOAD)
     {
         tx_errors++;
         return false;
     }
-    
+
     // 헤더 구성
-    tx_buffer[0] = START_BYTE;         // Start byte
-    tx_buffer[1] = device_id;          // Device ID
-    tx_buffer[2] = 0x01;               // Version (현재 0x01 고정)
-    tx_buffer[3] = packet_type;        // Packet type
-    tx_buffer[4] = length;             // Payload length
-    
+    tx_buffer[0] = START_BYTE;  // Start byte
+    tx_buffer[1] = device_id;   // Device ID
+    tx_buffer[2] = 0x01;        // Version (현재 0x01 고정)
+    tx_buffer[3] = packet_type; // Packet type
+    tx_buffer[4] = length;      // Payload length
+
     // 페이로드 복사
     memcpy(&tx_buffer[HEADER_SIZE], payload, length);
-    
+
     // 체크섬 계산 (XOR)
     for (i = 0; i < HEADER_SIZE + length; i++)
     {
         checksum ^= tx_buffer[i];
     }
-    
+
     // 체크섬 추가
     tx_buffer[HEADER_SIZE + length] = checksum;
-    
+
     return true;
 }
 
@@ -326,22 +252,22 @@ bool key_protocol_send_key_data(uint8_t device_id, uint8_t *key_matrix, uint8_t 
         tx_errors++;
         return false;
     }
-    
+
     // 페이로드 준비: column count + key states
     uint8_t payload[MAX_PAYLOAD];
     payload[0] = column_count;
     memcpy(&payload[1], key_matrix, column_count);
-    
+
     // 패킷 조립
     if (!tx_packet_prepare(device_id, PACKET_TYPE_KEY, payload, column_count + 1))
     {
         return false;
     }
-    
+
     // 패킷 전송
     uint32_t packet_length = HEADER_SIZE + (column_count + 1) + FOOTER_SIZE;
     uint32_t sent_len = rfWrite(tx_buffer, packet_length);
-    
+
     if (sent_len == packet_length)
     {
         tx_packets++;
@@ -358,26 +284,26 @@ bool key_protocol_send_key_data(uint8_t device_id, uint8_t *key_matrix, uint8_t 
 bool key_protocol_send_trackball_data(uint8_t device_id, int16_t x, int16_t y)
 {
     uint8_t payload[4];
-    
+
     // 디버그 출력 추가 (필요시)
     // logPrintf("Sending trackball data: x=%d, y=%d\n", x, y);
-    
+
     // Little-endian으로 X, Y 좌표 저장
     // 16비트 값을 8비트 바이트 두 개로 분리
-    payload[0] = (uint8_t)(x & 0xFF);         // 하위 바이트
-    payload[1] = (uint8_t)((x >> 8) & 0xFF);  // 상위 바이트
-    payload[2] = (uint8_t)(y & 0xFF);         // 하위 바이트
-    payload[3] = (uint8_t)((y >> 8) & 0xFF);  // 상위 바이트
-    
+    payload[0] = (uint8_t)(x & 0xFF);        // 하위 바이트
+    payload[1] = (uint8_t)((x >> 8) & 0xFF); // 상위 바이트
+    payload[2] = (uint8_t)(y & 0xFF);        // 하위 바이트
+    payload[3] = (uint8_t)((y >> 8) & 0xFF); // 상위 바이트
+
     // 패킷 조립
     if (!tx_packet_prepare(device_id, PACKET_TYPE_TRACKBALL, payload, 4))
     {
         return false;
     }
-    
+
     // 패킷 전송
     uint32_t sent_len = rfWrite(tx_buffer, HEADER_SIZE + 4 + FOOTER_SIZE);
-    
+
     if (sent_len == (HEADER_SIZE + 4 + FOOTER_SIZE))
     {
         tx_packets++;
@@ -398,10 +324,10 @@ bool key_protocol_send_system_data(uint8_t device_id, uint8_t *system_data, uint
     {
         return false;
     }
-    
+
     // 패킷 전송
     uint32_t sent_len = rfWrite(tx_buffer, HEADER_SIZE + length + FOOTER_SIZE);
-    
+
     if (sent_len == (HEADER_SIZE + length + FOOTER_SIZE))
     {
         tx_packets++;
@@ -418,16 +344,16 @@ bool key_protocol_send_system_data(uint8_t device_id, uint8_t *system_data, uint
 bool key_protocol_send_battery_data(uint8_t device_id, uint8_t battery_level)
 {
     uint8_t payload = battery_level;
-    
+
     // 패킷 조립
     if (!tx_packet_prepare(device_id, PACKET_TYPE_BATTERY, &payload, 1))
     {
         return false;
     }
-    
+
     // 패킷 전송
     uint32_t sent_len = rfWrite(tx_buffer, HEADER_SIZE + 1 + FOOTER_SIZE);
-    
+
     if (sent_len == (HEADER_SIZE + 1 + FOOTER_SIZE))
     {
         tx_packets++;
@@ -447,60 +373,54 @@ static void cli_command(cli_args_t *args)
     {
         cliPrintf("Key Protocol Status\n");
         cliPrintf("-------------------\n");
-        cliPrintf("Total RX packets: %u\n", packet_total);
-        cliPrintf("RX error packets: %u\n", packet_errors);
-        cliPrintf("Key packets: %u\n", key_packets);
-        cliPrintf("Trackball packets: %u\n", trackball_packets);
         cliPrintf("Total TX packets: %u\n", tx_packets);
         cliPrintf("TX error packets: %u\n", tx_errors);
-        cliPrintf("Last Device ID: 0x%02X\n", last_device_id);
-        cliPrintf("Last Packet Type: 0x%02X\n", last_packet_type);
-        cliPrintf("Last Payload Length: %u\n", last_payload_length);
+        cliPrintf("Total RX errors: %u\n", rx_errors);
         return;
     }
-    
+
     // 새로운 테스트 명령어 추가
     if (args->argc == 2 && args->isStr(0, "test_tx"))
     {
         uint8_t test_type = (uint8_t)args->getData(1);
         bool result = false;
-        
+
         switch (test_type)
         {
-            case 1: // 키 데이터 테스트
-            {
-                uint8_t key_data[3] = {0x01, 0x02, 0x03};
-                result = key_protocol_send_key_data(DEVICE_ID_LEFT, key_data, 3);
-                break;
-            }
-            case 2: // 트랙볼 데이터 테스트
-                result = key_protocol_send_trackball_data(DEVICE_ID_LEFT, 10, -5);
-                break;
-            case 3: // 배터리 정보 테스트
-                result = key_protocol_send_battery_data(DEVICE_ID_LEFT, 85); // 85% 배터리
-                break;
-            default:
-                cliPrintf("Invalid test type\n");
-                break;
+        case 1: // 키 데이터 테스트
+        {
+            uint8_t key_data[3] = {0x01, 0x02, 0x03};
+            result = key_protocol_send_key_data(DEVICE_ID_LEFT, key_data, 3);
+            break;
         }
-        
+        case 2: // 트랙볼 데이터 테스트
+            result = key_protocol_send_trackball_data(DEVICE_ID_LEFT, 10, -5);
+            break;
+        case 3:                                                          // 배터리 정보 테스트
+            result = key_protocol_send_battery_data(DEVICE_ID_LEFT, 85); // 85% 배터리
+            break;
+        default:
+            cliPrintf("Invalid test type\n");
+            break;
+        }
+
         cliPrintf("TX Test %s\n", result ? "SUCCESS" : "FAILED");
         return;
     }
-    
+
     // 트랙볼 테스트 명령어 확장
     if (args->argc == 4 && args->isStr(0, "test_trackball"))
     {
         int16_t x = (int16_t)args->getData(1);
         int16_t y = (int16_t)args->getData(2);
         uint8_t device = (uint8_t)args->getData(3);
-        
+
         bool result = key_protocol_send_trackball_data(device, x, y);
-        cliPrintf("Trackball TX Test (x=%d, y=%d, dev=%d): %s\n", 
-                 x, y, device, result ? "SUCCESS" : "FAILED");
+        cliPrintf("Trackball TX Test (x=%d, y=%d, dev=%d): %s\n",
+                  x, y, device, result ? "SUCCESS" : "FAILED");
         return;
     }
-    
+
     // Show usage
     cliPrintf("keyproto info\n");
     cliPrintf("keyproto test_tx [1:key, 2:trackball, 3:battery]\n");

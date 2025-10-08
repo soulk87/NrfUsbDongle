@@ -28,8 +28,8 @@
 			"my_key_protocol.h": "c"
 		},
 		"files.exclude": {
-			"**/app": true,
-			"**/app_keyboard": true,
+			"**/app": false,
+			"**/app_keyboard": false,
 			"**/app_dongle": false,
 		}
 	}

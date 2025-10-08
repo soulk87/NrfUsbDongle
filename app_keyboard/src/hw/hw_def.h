@@ -4,11 +4,7 @@
 
 #include "def.h"
 #include "bsp.h"
-#include QMK_KEYMAP_CONFIG_H
-
-
-#define _DEF_FIRMWATRE_VERSION    "V241003R1"
-#define _DEF_BOARD_NAME           "ESP32-QMK"
+#include "ap/config.h"
 
 
 // #define _HW_DEF_RTOS_THREAD_PRI_CLI           5

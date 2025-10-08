@@ -143,9 +143,6 @@ static void (*via_hid_receive_func)(uint8_t *data, uint8_t length) = NULL;
 
 static uint8_t via_hid_usb_report[HID_VIA_EP_SIZE];
 
-static qbuffer_t report_q;
-
-
 #ifdef _USE_HW_CLI
 static void cliCmd(cli_args_t *args);
 #endif
@@ -198,45 +195,6 @@ static const struct hid_ops via_ops = {
     .set_report = hid_set_report_cb, // set_report 콜백 추가
     .get_report = hid_get_report_cb, // get_report 콜백 추가
 };
-
-static void send_keyboard_report(void)
-{
-  uint8_t report[] = {
-      REPORT_ID_KEYBOARD, // Report ID
-      0x00,               // Modifier
-      0x00,               // Reserved
-      0x04,               // Keycode: 'a'
-      0x00, 0x00, 0x00, 0x00, 0x00};
-  int ret = usb_write(0x81, report, sizeof(report), NULL); // IN endpoint 0x81 (default for HID)
-  if (ret < 0)
-  {
-    LOG_ERR("Failed to send keyboard report: %d", ret);
-  }
-  k_msleep(50);
-
-  report[3] = 0x00; // Key release
-  ret = usb_write(0x81, report, sizeof(report), NULL);
-  if (ret < 0)
-  {
-    LOG_ERR("Failed to send keyboard release: %d", ret);
-  }
-}
-
-static void send_mouse_report(void)
-{
-  uint8_t report[] = {
-      REPORT_ID_MOUSE, // Report ID
-      0x00,            // Buttons
-      0x01,            // X movement
-      0x00,            // Y movement
-      0x00             // Wheel
-  };
-  int ret = hid_int_ep_write(hid_dev, report, sizeof(report), NULL);
-  if (ret < 0)
-  {
-    LOG_ERR("Failed to send mouse report: %d", ret);
-  }
-}
 
 bool usbHidInit(void)
 {
@@ -309,7 +267,10 @@ bool usbHidSendMouseReport(uint8_t buttons, int8_t x, int8_t y, int8_t v, int8_t
   if (ret < 0)
   {
     LOG_ERR("Failed to send mouse report: %d", ret);
+    return false;
   }
+
+  return true;
 }
 
 bool usbHidSendReport(uint8_t *p_data, uint16_t length)

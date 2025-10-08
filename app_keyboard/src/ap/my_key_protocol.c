@@ -1,9 +1,6 @@
 #include "my_key_protocol.h"
 #include "hw.h"
-#include "pointing_device.h"
 #include <string.h>
-
-#ifdef RF_DONGLE_MODE_ENABLE
 
 // Protocol constants
 #define START_BYTE 0xAA
@@ -22,6 +19,14 @@
 #define MAX_PAYLOAD 32
 // Total max packet size
 #define MAX_PACKET_SIZE (HEADER_SIZE + MAX_PAYLOAD + FOOTER_SIZE)
+
+
+#ifndef LEFT_COLS
+#define LEFT_COLS 1
+#endif // LEFT_COLS
+#ifndef RIGHT_COLS
+#define RIGHT_COLS 1
+#endif // RIGHT_COLS
 
 // Buffer for storing received data
 static uint8_t rx_buffer[MAX_PACKET_SIZE];
@@ -103,7 +108,7 @@ static bool parse_packet(void)
 {
     // Extract packet info
     uint8_t device_id = rx_buffer[1];
-    uint8_t version = rx_buffer[2];
+    // uint8_t version = rx_buffer[2];
     uint8_t packet_type = rx_buffer[3];
     uint8_t payload_length = rx_buffer[4];
     uint8_t *payload = &rx_buffer[5];
@@ -210,7 +215,7 @@ bool RfMotionRead(int32_t *x, int32_t *y)
 // 패킷 조립 및 전송 함수
 static bool tx_packet_prepare(uint8_t device_id, uint8_t packet_type, uint8_t *payload, uint8_t length)
 {
-    uint8_t packet_length = HEADER_SIZE + length + FOOTER_SIZE;
+    // uint8_t packet_length = HEADER_SIZE + length + FOOTER_SIZE;
     uint8_t checksum = 0;
     uint8_t i;
 
@@ -424,5 +429,3 @@ static void cli_command(cli_args_t *args)
     cliPrintf("keyproto test_tx [1:key, 2:trackball, 3:battery]\n");
     cliPrintf("keyproto test_trackball [x] [y] [device_id]\n");
 }
-
-#endif

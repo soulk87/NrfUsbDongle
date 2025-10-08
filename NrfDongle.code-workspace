@@ -25,12 +25,13 @@
 			"xlocale": "c",
 			"xstring": "c",
 			"string_view": "c",
-			"my_key_protocol.h": "c"
+			"my_key_protocol.h": "c",
+			"ap.h": "c",
+			"config.h": "c"
 		},
 		"files.exclude": {
-			"**/app": false,
 			"**/app_keyboard": false,
-			"**/app_dongle": false,
+			"**/app_dongle": true,
 		}
 	}
 }

@@ -1,7 +1,7 @@
 #include "ap.h"
 // main.c
 #include <zephyr/kernel.h>
-#include "qmk/qmk.h"
+#include "ap/my_key_protocol.h"
 #define CLI_THREAD_STACK_SIZE 4096
 #define CLI_THREAD_PRIORITY 5
 
@@ -25,21 +25,21 @@ void apInit(void)
 
 void apMain(void)
 {
-  // uint32_t pre_time;
-  uint8_t index = 0;
-  qmkInit();
-  delay(100);
-  // pre_time = millis();
+  delay(10);
+
   while (1)
   {
-    // if (millis() - pre_time >= 2000)
-    // {
-    //   pre_time = millis();
+    // key scan
 
-    //   index++;
-    // }
-    qmkUpdate();
-    delay(10);
+    delay(5);
+
+    // trackball read
+    int32_t x = 0, y = 0;
+    if (pmw3610_motion_read(&x, &y))
+    {
+      key_protocol_send_trackball_data(KEY_BOARD_ID, (int16_t)x, (int16_t)y);
+    }
+    delay(5);
   }
 }
 

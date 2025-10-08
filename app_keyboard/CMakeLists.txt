@@ -4,10 +4,6 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(AppDongle)
 
-# QMK 모듈 CMake 파일을 포함합니다.
-include(src/ap/modules/qmk/CMakeLists.txt)
-
-
 # 소스 파일들을 수집합니다. (비재귀적 방식)
 # ap 및 bsp, hw 폴더의 모든 C/C++ 파일을 포함합니다.
 file(GLOB SRC_FILES 
@@ -34,7 +30,6 @@ target_sources(app PRIVATE
   src/main.c
   ${SRC_FILES}
   ${SRC_FILES_RECURSE}
-  ${QMK_SRC_FILES}
 )
 
 # 프로젝트의 헤더 파일 검색 경로를 지정합니다.
@@ -54,8 +49,6 @@ target_include_directories(app PUBLIC
   src/hw/driver/wear_leveling # 웨어 레벨링 드라이버 디렉토리
   src/lib                    # 라이브러리 디렉토리
   src/lib/fnv                # FNV 해시 라이브러리 디렉토리
-  src/ap/modules/qmk
-  ${QMK_INC_DIR}         # QMK 헤더 파일 디렉토리
 )
 
 

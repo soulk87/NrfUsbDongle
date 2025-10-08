@@ -9,7 +9,7 @@
 #define SRC_AP_AP_DEF_H_
 
 #include "hw.h"
-
+#include "ap/config.h"
 
 
 #endif /* SRC_AP_AP_DEF_H_ */

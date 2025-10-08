@@ -3,12 +3,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include QMK_KEYMAP_CONFIG_H
+#include "ap/config.h"
 
-#define DEVICE_ID_LEFT 0x01
-#define DEVICE_ID_RIGHT 0x02
+#define DEVICE_ID_LEFT 0x01u
+#define DEVICE_ID_RIGHT 0x02u
 
-#ifdef RF_DONGLE_MODE_ENABLE
 // Initialize the key protocol
 bool key_protocol_init(void);
 
@@ -24,7 +23,5 @@ bool key_protocol_send_key_data(uint8_t device_id, uint8_t *key_matrix, uint8_t 
 bool key_protocol_send_trackball_data(uint8_t device_id, int16_t x, int16_t y);
 bool key_protocol_send_system_data(uint8_t device_id, uint8_t *system_data, uint8_t length);
 bool key_protocol_send_battery_data(uint8_t device_id, uint8_t battery_level);
-
-#endif
 
 #endif /* MY_KEY_PROTOCOL_H_ */

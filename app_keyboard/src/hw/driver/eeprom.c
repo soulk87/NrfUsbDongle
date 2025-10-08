@@ -16,10 +16,6 @@ void cliEeprom(cli_args_t *args);
 
 
 static bool is_init = false;
-static uint8_t i2c_ch = _DEF_I2C1;
-static uint8_t i2c_addr = 0x50;
-
-
 
 
 bool eepromInit()
@@ -60,7 +56,6 @@ bool eepromIsInit(void)
 
 bool eepromValid(uint32_t addr)
 {
-  uint8_t data;
   bool ret;
 
   if (addr >= EEPROM_MAX_SIZE)

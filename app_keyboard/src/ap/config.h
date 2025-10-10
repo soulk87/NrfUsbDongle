@@ -2,8 +2,6 @@
 
 #include "my_key_protocol.h"
 
-#define RF_DONGLE_MODE_ENABLE
-
 #define KEY_BOARD_ID DEVICE_ID_LEFT
 
 #define MATRIX_ROWS 3

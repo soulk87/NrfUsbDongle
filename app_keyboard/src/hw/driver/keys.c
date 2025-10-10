@@ -12,6 +12,9 @@
 #define THREAD_STACK_SIZE 1024
 #define THREAD_PRIORITY 5
 
+// Debounce configuration - number of consistent readings needed
+#define DEBOUNCE_TIME_MS 5  // Debounce time in milliseconds
+
 static K_THREAD_STACK_DEFINE(key_thread_stack, THREAD_STACK_SIZE);
 static struct k_thread key_thread_data;
 
@@ -31,7 +34,9 @@ static void keysThread(void *arg1, void *arg2, void *arg3);
 static bool keysInitGpio(void);
 
 static uint8_t cols_buf[KEYS_COLS];
-
+static uint8_t cols_raw[KEYS_COLS];            // Raw (current) state of keys
+static uint8_t cols_debounced[KEYS_COLS];      // Debounced state of keys
+static uint8_t debounce_counters[KEYS_ROWS][KEYS_COLS]; // Counters for debouncing
 
 /* 배열로 직접 선언 */
 static const struct gpio_dt_spec rows_gpio_tbl[KEYS_ROWS] = {
@@ -52,6 +57,13 @@ bool keysInit(void)
 {
 
   keysInitGpio();
+  
+  // Initialize debounce arrays
+  memset(cols_buf, 0, sizeof(cols_buf));
+  memset(cols_raw, 0, sizeof(cols_raw));
+  memset(cols_debounced, 0, sizeof(cols_debounced));
+  memset(debounce_counters, 0, sizeof(debounce_counters));
+  
   // TODO: create semaphore
   // TODO: create thread
 
@@ -161,7 +173,8 @@ bool keysGetPressed(uint16_t row, uint16_t col)
 void keysScan(void)
 {
   uint8_t scan_buf[KEYS_COLS];
-
+  uint8_t new_state, current_state;
+  
   memset(scan_buf, 0, sizeof(scan_buf));
 
   // lockGpio();
@@ -171,17 +184,44 @@ void keysScan(void)
     k_usleep(10);
     for (int rows_i = 0; rows_i < KEYS_ROWS; rows_i++)
     {
-      if (gpio_pin_get_dt(&rows_gpio_tbl[rows_i]) == 0)
-      {
+      // Read the raw state
+      new_state = (gpio_pin_get_dt(&rows_gpio_tbl[rows_i]) == 0) ? 1 : 0;
+      current_state = (cols_debounced[cols_i] & (1 << rows_i)) ? 1 : 0;
+      
+      // If the state is different from the debounced state
+      if (new_state != current_state) {
+        debounce_counters[rows_i][cols_i]++;
+        // If the state has been stable for DEBOUNCE_TIME_MS
+        if (debounce_counters[rows_i][cols_i] >= DEBOUNCE_TIME_MS) {
+          // Update the debounced state
+          if (new_state) {
+            cols_debounced[cols_i] |= (1 << rows_i);
+          } else {
+            cols_debounced[cols_i] &= ~(1 << rows_i);
+          }
+          // Reset the counter
+          debounce_counters[rows_i][cols_i] = 0;
+        }
+      } else {
+        // Reset the counter if the state matches the debounced state
+        debounce_counters[rows_i][cols_i] = 0;
+      }
+      
+      // Store the raw reading
+      if (new_state) {
         scan_buf[cols_i] |= (1 << rows_i);
       }
     }
     gpio_pin_set_dt(&cols_gpio_tbl[cols_i], 1);
   }
   // unLockGpio();
-
+  
+  // Store raw readings for reference
+  memcpy(cols_raw, scan_buf, sizeof(scan_buf));
+  
   lock();
-  memcpy(cols_buf, scan_buf, sizeof(scan_buf));
+  // Use the debounced values for actual key detection
+  memcpy(cols_buf, cols_debounced, sizeof(cols_debounced));
   unLock();
 
   is_ready = true;

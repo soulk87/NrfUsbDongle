@@ -10,6 +10,10 @@
 #define PACKET_TYPE_TRACKBALL 0x02
 #define PACKET_TYPE_SYSTEM 0x03
 #define PACKET_TYPE_BATTERY 0x04
+#define PACKET_TYPE_HEARTBEAT 0x05
+
+#define HEARTBEAT_TIMEOUT_MS     1500
+#define CONNECTION_CHECK_INTERVAL 500
 
 // Header size (Start + DeviceID + Version + PacketType + Length)
 #define HEADER_SIZE 5
@@ -36,6 +40,7 @@ static bool parse_packet(void);
 static bool validate_checksum(uint8_t *data, uint32_t length);
 static void process_key_data(uint8_t device_id, uint8_t *payload, uint8_t length);
 static void process_trackball_data(uint8_t device_id, uint8_t *payload, uint8_t length);
+static void process_heartbeat_data(uint8_t device_id, uint8_t *payload, uint8_t length);
 static void cli_command(cli_args_t *args);
 
 // Debugging and statistics
@@ -53,6 +58,35 @@ static uint8_t rx_matrix[MATRIX_COLS] = {0};
 int32_t x_movement = 0;
 int32_t y_movement = 0;
 bool is_moving = false;
+
+typedef struct
+{
+    uint8_t device_id;
+    uint8_t status_flag;
+    uint8_t battery_level;
+    uint32_t last_time;
+    bool connected;
+} heartbeat_state_t;
+
+static heartbeat_state_t heartbeat_states[] =
+{
+    {DEVICE_ID_LEFT,  0u, 0u, 0u, false},
+    {DEVICE_ID_RIGHT, 0u, 0u, 0u, false},
+};
+
+static uint32_t last_connection_check_time = 0u;
+
+static heartbeat_state_t *get_heartbeat_state(uint8_t device_id)
+{
+    for (size_t i = 0; i < sizeof(heartbeat_states) / sizeof(heartbeat_states[0]); ++i)
+    {
+        if (heartbeat_states[i].device_id == device_id)
+        {
+            return &heartbeat_states[i];
+        }
+    }
+    return NULL;
+}
 
 bool key_protocol_init(void)
 {
@@ -102,6 +136,26 @@ void key_protocol_update(void)
         }
 
     }
+
+    uint32_t current_time = millis();
+    if (current_time - last_connection_check_time >= CONNECTION_CHECK_INTERVAL)
+    {
+        last_connection_check_time = current_time;
+        for (size_t i = 0; i < sizeof(heartbeat_states) / sizeof(heartbeat_states[0]); ++i)
+        {
+            heartbeat_state_t *state = &heartbeat_states[i];
+            if (state->connected && (current_time - state->last_time > HEARTBEAT_TIMEOUT_MS))
+            {
+                state->connected = false;
+                // logPrintf("Device 0x%02X disconnected (no heartbeat %ums)\n",
+                //           state->device_id, current_time - state->last_time);
+                memset(rx_matrix, 0, sizeof(rx_matrix));
+                x_movement = 0;
+                y_movement = 0;
+                is_moving = false;
+            }
+        }
+    }
 }
 
 static bool parse_packet(void)
@@ -127,6 +181,10 @@ static bool parse_packet(void)
     case PACKET_TYPE_SYSTEM:
     case PACKET_TYPE_BATTERY:
         // Not implemented yet
+        break;
+
+    case PACKET_TYPE_HEARTBEAT:
+        process_heartbeat_data(device_id, payload, payload_length);
         break;
 
     default:
@@ -198,6 +256,33 @@ static void process_trackball_data(uint8_t device_id, uint8_t *payload, uint8_t 
     x_movement = (int32_t)x_val;
     y_movement = (int32_t)y_val;
     is_moving = true;
+}
+
+static void process_heartbeat_data(uint8_t device_id, uint8_t *payload, uint8_t length)
+{
+    if (length < 2u)
+    {
+        return;
+    }
+
+    heartbeat_state_t *state = get_heartbeat_state(device_id);
+    if (state == NULL)
+    {
+        return;
+    }
+
+    bool was_connected = state->connected;
+
+    state->status_flag   = payload[0];
+    state->battery_level = payload[1];
+    state->last_time     = millis();
+    state->connected     = true;
+
+    // if (!was_connected)
+    // {
+    //     logPrintf("Device 0x%02X connected (battery %u%%)\n",
+    //               state->device_id, state->battery_level);
+    // }
 }
 
 bool RfMotionRead(int32_t *x, int32_t *y)
@@ -369,6 +454,59 @@ bool key_protocol_send_battery_data(uint8_t device_id, uint8_t battery_level)
     }
 }
 
+// 하트비트 데이터 전송 함수
+bool key_protocol_send_heartbeat(uint8_t device_id, uint8_t status_flag, uint8_t battery_level)
+{
+    uint8_t payload[2];
+
+    payload[0] = status_flag;
+    payload[1] = battery_level;
+
+    if (!tx_packet_prepare(device_id, PACKET_TYPE_HEARTBEAT, payload, sizeof(payload)))
+    {
+        return false;
+    }
+
+    uint32_t sent_len = rfWrite(tx_buffer, HEADER_SIZE + sizeof(payload) + FOOTER_SIZE);
+    if (sent_len == (HEADER_SIZE + sizeof(payload) + FOOTER_SIZE))
+    {
+        tx_packets++;
+        return true;
+    }
+
+    tx_errors++;
+    return false;
+}
+
+bool key_protocol_is_connected(uint8_t device_id)
+{
+    heartbeat_state_t *state = get_heartbeat_state(device_id);
+    return (state != NULL) ? state->connected : false;
+}
+
+uint8_t key_protocol_get_battery_level(uint8_t device_id)
+{
+    heartbeat_state_t *state = get_heartbeat_state(device_id);
+    return (state != NULL) ? state->battery_level : 0u;
+}
+
+uint8_t key_protocol_get_status_flag(uint8_t device_id)
+{
+    heartbeat_state_t *state = get_heartbeat_state(device_id);
+    return (state != NULL) ? state->status_flag : 0u;
+}
+
+uint32_t key_protocol_get_last_heartbeat_elapsed(uint8_t device_id)
+{
+    heartbeat_state_t *state = get_heartbeat_state(device_id);
+    if (state == NULL)
+    {
+        return HEARTBEAT_TIMEOUT_MS;
+    }
+    uint32_t now = millis();
+    return (now >= state->last_time) ? (now - state->last_time) : 0u;
+}
+
 // cli_command 함수 수정 - TX 통계 추가
 static void cli_command(cli_args_t *args)
 {
@@ -379,6 +517,17 @@ static void cli_command(cli_args_t *args)
         cliPrintf("Total TX packets: %u\n", tx_packets);
         cliPrintf("TX error packets: %u\n", tx_errors);
         cliPrintf("Total RX errors: %u\n", rx_errors);
+        for (size_t i = 0; i < sizeof(heartbeat_states) / sizeof(heartbeat_states[0]); ++i)
+        {
+            heartbeat_state_t *state = &heartbeat_states[i];
+            cliPrintf("Device 0x%02X - connected:%s status:0x%02X battery:%u%% last:%ums\n",
+                      state->device_id,
+                      state->connected ? "YES" : "NO",
+                      state->status_flag,
+                      state->battery_level,
+                      key_protocol_get_last_heartbeat_elapsed(state->device_id));
+        }
+        cliPrintf("Heartbeat timeout: %ums\n", HEARTBEAT_TIMEOUT_MS);
         return;
     }
 

@@ -23,6 +23,9 @@ void apInit(void)
                                   CLI_THREAD_PRIORITY, 0, K_NO_WAIT);
 }
 
+static uint8_t keybuffer[MATRIX_ROWS] = {0};
+static uint8_t new_keybuffer[MATRIX_ROWS] = {0};
+
 void apMain(void)
 {
   delay(10);
@@ -30,7 +33,13 @@ void apMain(void)
   while (1)
   {
     // key scan
-
+    keysReadBuf(new_keybuffer, MATRIX_COLS);
+    bool is_changed = (memcmp(keybuffer, new_keybuffer, MATRIX_COLS) != 0);
+    if (is_changed)
+    {
+      memcpy(keybuffer, new_keybuffer, MATRIX_COLS);
+      key_protocol_send_key_data(KEY_BOARD_ID, keybuffer, MATRIX_COLS);
+    }
     delay(5);
 
     // trackball read
@@ -40,6 +49,14 @@ void apMain(void)
       key_protocol_send_trackball_data(KEY_BOARD_ID, (int16_t)x, (int16_t)y);
     }
     delay(5);
+
+    // heartbeat send
+    static uint32_t last_heartbeat_time = 0;
+    if (millis() - last_heartbeat_time >= 500)
+    {
+      last_heartbeat_time = millis();
+      key_protocol_send_heartbeat(KEY_BOARD_ID, 0x01, 100);
+    }
   }
 }
 

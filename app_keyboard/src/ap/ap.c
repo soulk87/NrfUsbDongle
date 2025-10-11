@@ -23,8 +23,8 @@ void apInit(void)
                                   CLI_THREAD_PRIORITY, 0, K_NO_WAIT);
 }
 
-static uint8_t keybuffer[MATRIX_ROWS] = {0};
-static uint8_t new_keybuffer[MATRIX_ROWS] = {0};
+static uint8_t keybuffer[MATRIX_COLS] = {0};
+static uint8_t new_keybuffer[MATRIX_COLS] = {0};
 
 void apMain(void)
 {

@@ -1,7 +1,7 @@
 #include "usb.h"
 
 #ifdef _USE_HW_USB
-#include "usb_hid/usbd_hid.h"
+// #include "usb_hid/usbd_hid.h"
 #include "cdc.h"
 #include "cli.h"
 
@@ -128,10 +128,10 @@ bool usbInit(void)
   bool ret = false;
   ret |= cdcInit();
   k_msleep(500); // 하드웨어 안정화 대기
-  ret |= usbHidInit();
+  // ret |= usbHidInit();
   is_init = ret;
   // USB 활성화 (지연된 초기화)
-  k_msleep(500); // 하드웨어 안정화 대기
+  // k_msleep(500); // 하드웨어 안정화 대기
   ret = usb_enable(hid_status_cb);
   if (ret != 0)
   {
@@ -140,7 +140,7 @@ bool usbInit(void)
   }
 
   LOG_INF("HID device ready");
-  k_msleep(1000);
+  // k_msleep(1000);
   k_thread_create(&usb_thread_data, usb_thread_stack,
                   K_THREAD_STACK_SIZEOF(usb_thread_stack),
                   usb_thread_func,

@@ -15,6 +15,7 @@
 
 #define HEARTBEAT_TIMEOUT_MS     1500
 #define CONNECTION_CHECK_INTERVAL 500
+#define CONNECTION_CHECK_INTERVAL_OFFSET 100
 
 // Header size (Start + DeviceID + Version + PacketType + Length)
 #define HEADER_SIZE 5
@@ -139,7 +140,7 @@ void key_protocol_update(void)
     }
 
     uint32_t current_time = millis();
-    if (current_time - last_connection_check_time >= CONNECTION_CHECK_INTERVAL)
+    if (current_time - last_connection_check_time >= CONNECTION_CHECK_INTERVAL + CONNECTION_CHECK_INTERVAL_OFFSET)
     {
         last_connection_check_time = current_time;
         for (size_t i = 0; i < sizeof(heartbeat_states) / sizeof(heartbeat_states[0]); ++i)
@@ -150,7 +151,15 @@ void key_protocol_update(void)
                 state->connected = false;
                 // logPrintf("Device 0x%02X disconnected (no heartbeat %ums)\n",
                 //           state->device_id, current_time - state->last_time);
-                memset(rx_matrix, 0, sizeof(rx_matrix));
+                if (state->device_id == DEVICE_ID_LEFT)
+                {
+                    memset(&rx_matrix[0], 0, LEFT_COLS);
+                }
+                else if (state->device_id == DEVICE_ID_RIGHT)
+                {
+                    memset(&rx_matrix[LEFT_COLS], 0, RIGHT_COLS);
+                }
+
                 x_movement = 0;
                 y_movement = 0;
                 is_moving = false;
@@ -217,17 +226,25 @@ static bool validate_checksum(uint8_t *data, uint32_t length)
 
 static void process_key_data(uint8_t device_id, uint8_t *payload, uint8_t length)
 {
+    // 첫 바이트는 컬럼 수
+    uint8_t cols_length = payload[0];
+
+    if(length < 1 + cols_length)
+    {
+        return;
+    }
+
     if (device_id == DEVICE_ID_LEFT)
     {
-        if (length > LEFT_COLS)
-            length = LEFT_COLS;
-        memcpy(&rx_matrix[0], payload, length);
+        if (cols_length > LEFT_COLS)
+            cols_length = LEFT_COLS;
+        memcpy(&rx_matrix[0], &payload[1], cols_length);
     }
     else if (device_id == DEVICE_ID_RIGHT)
     {
-        if (length > RIGHT_COLS)
-            length = RIGHT_COLS;
-        memcpy(&rx_matrix[LEFT_COLS], payload, length);
+        if (cols_length > RIGHT_COLS)
+            cols_length = RIGHT_COLS;
+        memcpy(&rx_matrix[LEFT_COLS], &payload[1], cols_length);
     }
     else
     {
@@ -579,5 +596,3 @@ static void cli_command(cli_args_t *args)
     cliPrintf("keyproto test_tx [1:key, 2:trackball, 3:battery]\n");
     cliPrintf("keyproto test_trackball [x] [y] [device_id]\n");
 }
-
-#endif

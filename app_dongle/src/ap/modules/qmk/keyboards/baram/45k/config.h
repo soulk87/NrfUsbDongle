@@ -16,9 +16,9 @@
 #ifdef RF_DONGLE_MODE_ENABLE
 
 // Key matrix dimensions
-#define LEFT_COLS 1
+#define LEFT_COLS 2
 #define LEFT_ROWS 3
-#define RIGHT_COLS 1
+#define RIGHT_COLS 2
 #define RIGHT_ROWS 3
 
 #define MATRIX_COLS (LEFT_COLS + RIGHT_COLS)

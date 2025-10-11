@@ -60,15 +60,16 @@ uint8_t matrix_scan(void)
 
   pre_time = micros();
 
-  uint8_t curr_cols[MATRIX_COLS];
+  uint8_t curr_cols[MATRIX_COLS] = {0};
   uint32_t row_data;
 
 #ifdef RF_DONGLE_MODE_ENABLE
-  RfKeysReadBuf(curr_cols, MATRIX_COLS);
+  // RfKeysReadBuf(curr_cols, MATRIX_COLS);
 #else
-  keysReadBuf(curr_cols, MATRIX_COLS);
+  // keysReadBuf(curr_cols, MATRIX_COLS);
 #endif
-
+  RfKeysReadBuf(curr_cols, MATRIX_COLS);
+  
   for (uint32_t rows=0; rows<MATRIX_ROWS; rows++)
   {
     row_data = 0; 

@@ -30,8 +30,8 @@
 			"config.h": "c"
 		},
 		"files.exclude": {
-			"**/app_keyboard": false,
-			"**/app_dongle": true,
+			// "**/app_keyboard": true,
+			// "**/app_dongle": true,
 		}
 	}
 }

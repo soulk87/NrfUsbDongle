@@ -137,6 +137,7 @@ static void event_handler(struct esb_evt const *event)
     LOG_DBG("TX SUCCESS EVENT");
   break;
   case ESB_EVENT_TX_FAILED:
+    esb_flush_tx(); // TX 큐 비우기
     LOG_DBG("TX FAILED EVENT");
   break;
   case ESB_EVENT_RX_RECEIVED:

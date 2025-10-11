@@ -59,7 +59,7 @@
 // #define _USE_HW_I2C
 // #define      HW_I2C_MAX_CH          1
 
-#define _USE_HW_KEYS
+// #define _USE_HW_KEYS
 #define      HW_KEYS_PRESS_MAX      6
 
 // #define _USE_HW_GPIO
@@ -79,7 +79,7 @@
 //
 // #define _USE_CLI_HW_EEPROM          1
 // #define _USE_CLI_HW_I2C             1
-#define _USE_CLI_HW_KEYS            1
+// #define _USE_CLI_HW_KEYS            1
 #define _USE_CLI_HW_RF              1
 #define _USE_CLI_SPI                1   
 

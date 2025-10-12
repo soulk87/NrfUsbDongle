@@ -7,7 +7,7 @@ extern "C" {
 
 #include "hw_def.h"
 
-
+#include "gpio.h"
 #include "uart.h"
 #include "cli.h"
 // #include "log.h"

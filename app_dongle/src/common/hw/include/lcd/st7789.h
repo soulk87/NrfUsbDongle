@@ -17,7 +17,6 @@ extern "C" {
 
 #ifdef _USE_HW_ST7789
 
-#include "lcd.h"
 #include "st7789_regs.h"
 
 

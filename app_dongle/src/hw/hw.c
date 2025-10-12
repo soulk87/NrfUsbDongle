@@ -13,7 +13,7 @@ bool hwInit(void)
 
   cliInit();
   // logInit();
-
+  gpioInit();
   uartInit();
   uartOpen(_DEF_UART1, 115200);
   // cliOpen(_DEF_UART1, 115200);

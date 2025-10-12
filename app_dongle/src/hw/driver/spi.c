@@ -4,13 +4,12 @@
 #include <nrfx_spim.h>
 #include "cli.h"
 
-#define SPIM_INST_IDX 1
 #define SCK_PIN 32  // P1.0
 #define MOSI_PIN 24 // P0.24
 #define MISO_PIN 24 // P0.24
 #define SS_PIN 11   // P0.11
 
-static const nrfx_spim_t spim[HW_SPI_MAX_CH] = {NRFX_SPIM_INSTANCE(SPIM_INST_IDX)};
+static const nrfx_spim_t spim[HW_SPI_MAX_CH] = {NRFX_SPIM_INSTANCE(1)};
 
 #ifdef _USE_CLI_SPI
 void cliSpi(cli_args_t *args);
@@ -19,14 +18,13 @@ void cliSpi(cli_args_t *args);
 bool spiInit(void)
 {
   nrfx_err_t status;
-  nrfx_spim_t spim_inst = NRFX_SPIM_INSTANCE(SPIM_INST_IDX);
 
   nrfx_spim_config_t spim_config = NRFX_SPIM_DEFAULT_CONFIG(SCK_PIN,
                                                             MOSI_PIN,
                                                             MISO_PIN,
                                                             SS_PIN);
 
-  status = nrfx_spim_init(&spim_inst, &spim_config, NULL, NULL);
+  status = nrfx_spim_init(&spim[0], &spim_config, NULL, NULL);
   if (status != NRFX_SUCCESS)
   {
     return false;

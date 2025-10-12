@@ -33,9 +33,9 @@ bool hwInit(void)
   // adcInit();
   // batteryInit();
   // i2cInit();
-  spiInit();
+  // spiInit();
 
-  pmw3610_init();
+  // pmw3610_init();
   
   eepromInit();
   rfInit();

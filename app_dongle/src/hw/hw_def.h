@@ -72,8 +72,8 @@
 #define    HW_RF_MODE   _DEF_RF_MODE_RX
 
 
-#define _USE_HW_SPI
-#define     HW_SPI_MAX_CH          1
+// #define _USE_HW_SPI
+// #define     HW_SPI_MAX_CH          1
 
 //-- CLI
 //
@@ -81,12 +81,12 @@
 // #define _USE_CLI_HW_I2C             1
 // #define _USE_CLI_HW_KEYS            1
 #define _USE_CLI_HW_RF              1
-#define _USE_CLI_SPI                1   
+// #define _USE_CLI_SPI                1   
 
 
 // Drivers
-#define _USE_HW_PMW3610
-#define     HW_PMW3610_SPI_CH        _DEF_SPI1
+// #define _USE_HW_PMW3610
+// #define     HW_PMW3610_SPI_CH        _DEF_SPI1
 
 #define __WEAK                      __attribute__((weak))
 

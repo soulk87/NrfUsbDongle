@@ -1,5 +1,7 @@
 #include "pmw3610.h"
 
+#ifdef _USE_HW_PMW3610
+
 #include "spi.h"
 #include "bsp.h"
 #include <zephyr/logging/log.h>
@@ -660,4 +662,5 @@ static int pmw3610_pm_action(
 
     return 0;
 }
+#endif
 #endif

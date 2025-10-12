@@ -27,10 +27,14 @@
 			"string_view": "c",
 			"my_key_protocol.h": "c",
 			"ap.h": "c",
-			"config.h": "c"
+			"config.h": "c",
+			"device.h": "c",
+			"lvgl.h": "c",
+			"kernel.h": "c",
+			"stdio.h": "c"
 		},
 		"files.exclude": {
-			// "**/app_keyboard": true,
+			"**/app_keyboard": true,
 			// "**/app_dongle": true,
 		}
 	}

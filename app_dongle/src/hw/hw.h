@@ -26,6 +26,9 @@ extern "C" {
 #include "sensor/pmw3610.h"
 #include "lcd/st7789.h"
 
+#include "lvgl/lvgl.h"
+#include "driver/lvgl/lv_port_disp.h"
+
 bool hwInit(void);
 
 

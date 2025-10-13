@@ -39,6 +39,8 @@ bool hwInit(void)
   
   eepromInit();
   st7789Init();
+  lv_init();
+  lv_port_disp_init();
   rfInit();
   // keysInit();
   // delay(100);

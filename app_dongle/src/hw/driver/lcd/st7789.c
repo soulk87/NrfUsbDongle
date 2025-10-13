@@ -40,7 +40,6 @@ static void st7789InitRegs(void);
 static void st7789SetRotation(uint8_t m);
 static void st7789SetRotationDriver(uint8_t m);
 static bool st7789Reset(void);
-static bool st7789SendBuffer(uint8_t *p_data, uint32_t length, uint32_t timeout_ms);
 static void write16BitData(uint16_t data);
 
 static uint8_t   spi_ch = HW_ST7789_SPI_CH;
@@ -277,7 +276,7 @@ void st7789FillRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color)
 
   for (int i = 0; i < h; i++) {
     // Transfer the entire line using 8-bit transfers
-    spiTransfer(spi_ch, line_buf, w * 2, NULL, 0, 100);
+    spiTransferDma(spi_ch, line_buf, w * 2, NULL, 0);
   }
 }
 
@@ -294,7 +293,7 @@ bool st7789SendBuffer(uint8_t *p_data, uint32_t length, uint32_t timeout_ms)
   // Note: p_data contains 16-bit color values, but we're using 8-bit transfers
   // The caller would need to handle converting 16-bit colors to 8-bit transfer format
   // by ensuring p_data contains MSB first, then LSB for each color
-  spiTransfer(spi_ch, p_data, length, NULL, 0 , 100);
+  spiTransferDma(spi_ch, p_data, length, NULL, 0);
 
   return true;
 }

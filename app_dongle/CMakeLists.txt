@@ -19,6 +19,7 @@ file(GLOB SRC_FILES
   src/hw/driver/usb/usb_hid/*.c
   src/hw/driver/wear_leveling/*.c
   src/hw/driver/lcd/st7789.c
+  src/hw/driver/lvgl/lv_port_disp.c
   src/lib/fnv/qmk_fnv_type_validation.c
   src/lib/fnv/hash_32a.c
   src/lib/fnv/hash_64a.c
@@ -27,7 +28,8 @@ file(GLOB SRC_FILES
 # 소스 파일들을 재귀적으로 수집합니다.
 # common 및 hw 폴더 내의 모든 하위 디렉토리를 포함하여 C 파일을 찾습니다.
 file(GLOB_RECURSE SRC_FILES_RECURSE
-  src/common/*.c 
+  src/common/*.c
+  src/lib/lvgl/*.c
   # hw/*.c
 )
 # 소스 파일들을 app 타겟에 추가합니다
@@ -37,6 +39,20 @@ target_sources(app PRIVATE
   ${SRC_FILES_RECURSE}
   ${QMK_SRC_FILES}
 )
+
+# 재귀적으로 모든 하위 디렉토리를 찾기
+file(GLOB_RECURSE ALL_DIRS LIST_DIRECTORIES true RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/lib/lvgl/*")
+
+# 디렉토리만 필터링
+set(INCLUDE_DIRS_RECURSIVE)
+foreach(DIR ${ALL_DIRS})
+  if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${DIR})
+    list(APPEND INCLUDE_DIRS_RECURSIVE ${DIR})
+  endif()
+endforeach()
+
+# INCLUDE_DIRS_RECURSIVE 변수 출력 (디버깅용)
+# message(STATUS "INCLUDE_DIRS_RECURSIVE: ${INCLUDE_DIRS_RECURSIVE}\r\n")
 
 # 프로젝트의 헤더 파일 검색 경로를 지정합니다.
 # 컴파일 시 필요한 모든 헤더 파일이 있는 디렉토리를 PUBLIC으로 추가합니다.
@@ -57,6 +73,8 @@ target_include_directories(app PUBLIC
   src/lib                    # 라이브러리 디렉토리
   src/lib/fnv                # FNV 해시 라이브러리 디렉토리
   src/ap/modules/qmk
+  src/hw/driver/lvgl
+  ${INCLUDE_DIRS_RECURSIVE}  # 재귀적으로 찾은 lvgl 포함 디렉토리들
   ${QMK_INC_DIR}         # QMK 헤더 파일 디렉토리
 )
 

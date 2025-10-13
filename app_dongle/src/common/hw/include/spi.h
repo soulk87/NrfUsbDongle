@@ -26,17 +26,19 @@ extern "C"
 
     bool spiInit(void);
     // bool spiBegin(uint8_t ch);
-    void spiSetDataMode(uint8_t ch, uint8_t dataMode);
+    // void spiSetDataMode(uint8_t ch, uint8_t dataMode);
     void spiSetBitWidth(uint8_t ch, uint8_t bit_width);
 
     bool spiTransfer(uint8_t ch, uint8_t *tx_buf, uint32_t tx_length, uint8_t *rx_buf, uint32_t rx_length, uint32_t timeout);
+    bool spiTransferDma(uint8_t ch, uint8_t *tx_buf, uint32_t tx_length, uint8_t *rx_buf, uint32_t rx_length);
+
     // uint8_t  spiTransfer8(uint8_t ch, uint8_t data);
     // uint16_t spiTransfer16(uint8_t ch, uint16_t data);
 
     // void spiDmaTxStart(uint8_t ch, uint8_t *p_buf, uint32_t length);
     // bool spiDmaTxTransfer(uint8_t ch, void *buf, uint32_t length, uint32_t timeout);
     // bool spiDmaTxIsDone(uint8_t ch);
-    // void spiAttachTxInterrupt(uint8_t ch, void (*func)());
+    void spiAttachTxInterrupt(uint8_t ch, void (*func)());
 
 #endif
 

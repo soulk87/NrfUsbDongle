@@ -27,7 +27,7 @@ static gpio_tbl_t gpio_tbl[GPIO_MAX_CH] =
     {   
       {GPIO_DT_SPEC_GET(DT_NODELABEL(lcd_dc), gpios), _DEF_OUTPUT, _DEF_LOW }, // 0. LCD DC
       {GPIO_DT_SPEC_GET(DT_NODELABEL(lcd_rst), gpios), _DEF_OUTPUT, _DEF_HIGH}, // 1. LCD RST
-      {GPIO_DT_SPEC_GET(DT_NODELABEL(lcd_cs), gpios), _DEF_OUTPUT, _DEF_HIGH}, // 2. LCD CS
+      {GPIO_DT_SPEC_GET(DT_NODELABEL(lcd_blk), gpios), _DEF_OUTPUT, _DEF_HIGH}, // 2. LCD BLK
     };
 
 static uint8_t gpio_data[GPIO_MAX_CH];

@@ -38,6 +38,7 @@ bool hwInit(void)
   pmw3610_init();
   
   eepromInit();
+  st7789Init();
   rfInit();
   // keysInit();
   // delay(100);

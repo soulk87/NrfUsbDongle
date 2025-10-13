@@ -18,6 +18,7 @@ file(GLOB SRC_FILES
   src/hw/driver/usb/*.c
   src/hw/driver/usb/usb_hid/*.c
   src/hw/driver/wear_leveling/*.c
+  src/hw/driver/lcd/st7789.c
   src/lib/fnv/qmk_fnv_type_validation.c
   src/lib/fnv/hash_32a.c
   src/lib/fnv/hash_64a.c
@@ -48,6 +49,7 @@ target_include_directories(app PUBLIC
   src/common/core            # 코어 공통 기능
   src/common/hw/include      # 하드웨어 관련 헤더 파일
   src/common/hw/include/sensor # 센서 관련 헤더 파일
+  src/common/hw/include/lcd    # LCD 관련 헤더 파일
   src/hw                     # 하드웨어 드라이버 디렉토리
   src/hw/driver/usb          # USB 드라이버 디렉토리
   src/hw/driver/usb/usbd_hid # USB 드라이버 디렉토리

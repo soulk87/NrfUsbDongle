@@ -4,10 +4,10 @@
 #include <nrfx_spim.h>
 #include "cli.h"
 
-#define SCK_PIN 32  // P1.0
-#define MOSI_PIN 24 // P0.24
-#define MISO_PIN 24 // P0.24
-#define SS_PIN 11   // P0.11
+#define SCK_PIN 24  // P0.24
+#define MOSI_PIN 32 // P1.00
+#define MISO_PIN 32 // P1.00
+#define SS_PIN 38   // P1.06
 
 static const nrfx_spim_t spim[HW_SPI_MAX_CH] = {NRFX_SPIM_INSTANCE(1)};
 
@@ -23,7 +23,7 @@ bool spiInit(void)
                                                             MOSI_PIN,
                                                             MISO_PIN,
                                                             SS_PIN);
-
+  spim_config.frequency = NRFX_MHZ_TO_HZ(8);
   status = nrfx_spim_init(&spim[0], &spim_config, NULL, NULL);
   if (status != NRFX_SUCCESS)
   {
@@ -38,10 +38,6 @@ bool spiInit(void)
 }
 
 void spiSetDataMode(uint8_t ch, uint8_t dataMode)
-{
-}
-
-void spiSetBitWidth(uint8_t ch, uint8_t bit_width)
 {
 }
 

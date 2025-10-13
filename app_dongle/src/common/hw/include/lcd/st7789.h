@@ -22,7 +22,6 @@ extern "C" {
 
 
 bool st7789Init(void);
-bool st7789InitDriver(lcd_driver_t *p_driver);
 void st7789SetWindow(int32_t x, int32_t y, int32_t w, int32_t h);
 bool st7789SetCallBack(void (*p_func)(void));
 

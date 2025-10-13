@@ -24,6 +24,7 @@ extern "C" {
 // #include "driver/ble/ble.h"
 #include "spi.h"
 #include "sensor/pmw3610.h"
+#include "lcd/st7789.h"
 
 bool hwInit(void);
 

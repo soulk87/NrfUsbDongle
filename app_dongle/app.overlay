@@ -32,9 +32,9 @@
             gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;
             label = "LCD RST";
         };
-        lcd_cs: lcd_cs {
-            gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
-            label = "LCD CS";
+        lcd_blk: lcd_blk {
+            gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
+            label = "LCD BLK";
         };
     };
 };

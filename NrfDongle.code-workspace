@@ -30,7 +30,8 @@
 			"config.h": "c",
 			"cli.h": "c",
 			"gpio.h": "c",
-			"random": "c"
+			"random": "c",
+			"hw_def.h": "c"
 		},
 		"files.exclude": {
 			"**/app_keyboard": true,

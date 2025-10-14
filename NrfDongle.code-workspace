@@ -7,10 +7,10 @@
 		// 	"name": "soc_flash_nrf",
 		// 	"path": "c:/ncs/v3.0.0/zephyr/samples/drivers/soc_flash_nrf"
 		// },
-		{
-			"name": "non_blocking",
-			"path": "c:/ncs/v3.0.0/modules/hal/nordic/nrfx/samples/src/nrfx_spim/non_blocking"
-		},
+		// {
+		// 	"name": "non_blocking",
+		// 	"path": "c:/ncs/v3.0.0/modules/hal/nordic/nrfx/samples/src/nrfx_spim/non_blocking"
+		// },
 		// {
 		// 	"name": "MyESP32Keyboard",
 		// 	"path": "c:/GIT/MyESP32Keyboard"

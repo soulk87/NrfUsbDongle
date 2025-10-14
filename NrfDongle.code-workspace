@@ -3,10 +3,18 @@
 		{
 			"path": "../NrfUsbDongle"
 		},
+		// {
+		// 	"name": "soc_flash_nrf",
+		// 	"path": "c:/ncs/v3.0.0/zephyr/samples/drivers/soc_flash_nrf"
+		// },
 		{
-			"name": "soc_flash_nrf",
-			"path": "../../c:/ncs/v3.0.0/zephyr/samples/drivers/soc_flash_nrf"
-		}
+			"name": "non_blocking",
+			"path": "c:/ncs/v3.0.0/modules/hal/nordic/nrfx/samples/src/nrfx_spim/non_blocking"
+		},
+		// {
+		// 	"name": "MyESP32Keyboard",
+		// 	"path": "c:/GIT/MyESP32Keyboard"
+		// }
 	],
 	"settings": {
 		"nrf-connect.applications": [
@@ -27,10 +35,16 @@
 			"string_view": "c",
 			"my_key_protocol.h": "c",
 			"ap.h": "c",
-			"config.h": "c"
+			"config.h": "c",
+			"cli.h": "c",
+			"gpio.h": "c",
+			"random": "c",
+			"hw_def.h": "c",
+			"nrfx_spim.h": "c",
+			"st7789.h": "c"
 		},
 		"files.exclude": {
-			// "**/app_keyboard": true,
+			"**/app_keyboard": true,
 			// "**/app_dongle": true,
 		}
 	}

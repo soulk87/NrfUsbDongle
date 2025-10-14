@@ -1,19 +1,38 @@
 {
-	"version": "0.2.0",
-	"configurations": [
-		{
-			"type": "nrf-connect",
-			"request": "launch",
-			"name": "Launch build",
-			"config": "${workspaceFolder}/app_dongle/build",
-			"runToEntryPoint": "main",
-			"memorySections": [
-				{
-					"name": "key",
-					"start": 864256,
-					"size": 8192
-				}
-			]
-		}
-	]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "nrf-connect",
+      "request": "launch",
+      "name": "Launch build",
+      "config": "${workspaceFolder}/app_dongle/build",
+      "runToEntryPoint": "main",
+      "memorySections": [
+        {
+          "name": "key",
+          "start": 864256,
+          "size": 8192
+        }
+      ]
+    },
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "c:/GIT/NrfUsbDongle/app_dongle/src/hw/driver",
+      "program": "c:/GIT/NrfUsbDongle/app_dongle/src/hw/driver/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ]
 }

@@ -17,16 +17,14 @@ extern "C" {
 
 #ifdef _USE_HW_ST7789
 
-#include "lcd.h"
 #include "st7789_regs.h"
 
 
 
 bool st7789Init(void);
-bool st7789InitDriver(lcd_driver_t *p_driver);
 void st7789SetWindow(int32_t x, int32_t y, int32_t w, int32_t h);
 bool st7789SetCallBack(void (*p_func)(void));
-
+bool st7789SendBuffer(uint8_t *p_data, uint32_t length, uint32_t timeout_ms);
 uint16_t st7789GetWidth(void);
 uint16_t st7789GetHeight(void);
 

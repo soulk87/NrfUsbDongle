@@ -56,6 +56,21 @@
 #define      HW_LOG_BOOT_BUF_MAX    1024
 #define      HW_LOG_LIST_BUF_MAX    1024
 
+
+#define _USE_HW_ST7789
+#define      HW_LCD_WIDTH           240
+#define      HW_LCD_HEIGHT          240
+#define      HW_ST7789_CLI_ON
+#define      HW_ST7789_SPI_CH        _DEF_SPI1
+
+
+#define _USE_HW_GPIO
+#define      HW_GPIO_PIN_LCD_DC            0
+#define      HW_GPIO_PIN_LCD_RST           1
+#define      HW_GPIO_PIN_LCD_BLK           2
+#define      HW_GPIO_MAX_CH                3
+
+
 // #define _USE_HW_I2C
 // #define      HW_I2C_MAX_CH          1
 

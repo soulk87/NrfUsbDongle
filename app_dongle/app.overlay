@@ -19,4 +19,22 @@
             gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
         };
     };
+
+    lcd_pins {
+        compatible = "gpio-leds";
+        status = "okay";
+        
+        lcd_dc: lcd_dc {
+            gpios = <&gpio1 4 GPIO_ACTIVE_HIGH>;
+            label = "LCD DC";
+        };
+        lcd_rst: lcd_rst {
+            gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;
+            label = "LCD RST";
+        };
+        lcd_blk: lcd_blk {
+            gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
+            label = "LCD BLK";
+        };
+    };
 };

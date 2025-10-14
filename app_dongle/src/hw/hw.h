@@ -7,7 +7,7 @@ extern "C" {
 
 #include "hw_def.h"
 
-
+#include "gpio.h"
 #include "uart.h"
 #include "cli.h"
 // #include "log.h"
@@ -24,6 +24,10 @@ extern "C" {
 // #include "driver/ble/ble.h"
 #include "spi.h"
 #include "sensor/pmw3610.h"
+#include "lcd/st7789.h"
+
+#include "lvgl/lvgl.h"
+#include "driver/lvgl/lv_port_disp.h"
 
 bool hwInit(void);
 

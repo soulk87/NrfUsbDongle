@@ -13,7 +13,7 @@ bool hwInit(void)
 
   cliInit();
   // logInit();
-
+  gpioInit();
   uartInit();
   uartOpen(_DEF_UART1, 115200);
   // cliOpen(_DEF_UART1, 115200);
@@ -38,6 +38,9 @@ bool hwInit(void)
   pmw3610_init();
   
   eepromInit();
+  st7789Init();
+  lv_init();
+  lv_port_disp_init();
   rfInit();
   // keysInit();
   // delay(100);

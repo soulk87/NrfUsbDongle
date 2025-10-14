@@ -18,7 +18,7 @@ static qbuffer_t rx_q;
 static uint8_t rx_q_buf[1024];
 static uint8_t rx_usb_buf[HW_CDC_RX_BUFFER_SIZE];
 // 스레드 관련 변수 추가
-#define THREAD_STACK_SIZE 256
+#define THREAD_STACK_SIZE 512
 #define THREAD_PRIORITY 5
 
 static K_THREAD_STACK_DEFINE(usbcdc_thread_stack, THREAD_STACK_SIZE);

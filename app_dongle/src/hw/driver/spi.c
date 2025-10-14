@@ -24,7 +24,7 @@ static spi_tbl_t spi_tbl[HW_SPI_MAX_CH] = {
    {
         .spim = NRFX_SPIM_INSTANCE(3),
         .config = NRFX_SPIM_DEFAULT_CONFIG(SCK_PIN, MOSI_PIN, MISO_PIN, SS_PIN),
-        .freq = 8000000,
+        .freq = 32000000,
         .p_tx_done_func = NULL,
         .is_init = false,
         .is_dma_mode = true
@@ -57,6 +57,10 @@ static void spim_handler(nrfx_spim_evt_t const * p_event, void * p_context)
 bool spiInit(void)
 {
   uint32_t err_count = 0;
+  
+
+  IRQ_CONNECT(NRFX_IRQ_NUMBER_GET(NRF_SPIM_INST_GET(3)), IRQ_PRIO_LOWEST,
+        NRFX_SPIM_INST_HANDLER_GET(3), 0, 0);
 
   for(int i=0; i<SPI_MAX_CH; i++)
   {
@@ -66,6 +70,8 @@ bool spiInit(void)
     
     if(spi_tbl[i].is_dma_mode == true)
     {
+
+
       status = nrfx_spim_init(&spi_tbl[i].spim, &spi_tbl[i].config, spim_handler, (void *)&spi_tbl[i]);
     }
     else
@@ -127,6 +133,10 @@ bool spiTransfer(uint8_t ch, uint8_t *tx_buf, uint32_t tx_length, uint8_t *rx_bu
   nrfx_spim_xfer_desc_t xfer_desc = NRFX_SPIM_XFER_TRX(tx_buf, tx_length, rx_buf, rx_length);
 
   status = nrfx_spim_xfer(&spim_inst, &xfer_desc, 0);
+  if (status != NRFX_SUCCESS)
+  {
+    return false;
+  }
 
   // dma 모드 spi를 polling 방식으로 사용 시 완료 대기
   if(spi_tbl[ch].is_dma_mode == true)
@@ -138,14 +148,11 @@ bool spiTransfer(uint8_t ch, uint8_t *tx_buf, uint32_t tx_length, uint8_t *rx_bu
       {
         return false;
       }
-      delay(1);
+      // delay(1);
     }
   }
 
-  if (status != NRFX_SUCCESS)
-  {
-    return false;
-  }
+
 
   return true;
 }

@@ -97,7 +97,7 @@ bool st7789Reset(void)
   gpioPinWrite(_PIN_DEF_RST, _DEF_HIGH);
   delay(50);
   //TODO: spi dma setting
-  // spiAttachTxInterrupt(spi_ch, transferDoneISR);
+  spiAttachTxInterrupt(spi_ch, transferDoneISR);
 
   st7789InitRegs();
 
@@ -276,7 +276,7 @@ void st7789FillRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color)
 
   for (int i = 0; i < h; i++) {
     // Transfer the entire line using 8-bit transfers
-    spiTransferDma(spi_ch, line_buf, w * 2, NULL, 0);
+    spiTransfer(spi_ch, line_buf, w * 2, NULL, 0, 10000);
   }
 }
 

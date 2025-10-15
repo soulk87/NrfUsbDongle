@@ -101,7 +101,7 @@ bool st7789Reset(void)
 
   st7789InitRegs();
 
-  st7789SetRotation(4); // 4, 3
+  st7789SetRotation(3); // 4, 3
   st7789FillRect(0, 0, HW_LCD_WIDTH, HW_LCD_HEIGHT, ST7789_BLACK);
   
   return true;

@@ -7,6 +7,7 @@
 #include <string.h>
 #include "cli.h"
 #include "usb.h"
+#include "ap_lvgl.h"
 
 #ifdef RF_DONGLE_MODE_ENABLE
 #include "my_key_protocol.h"
@@ -95,6 +96,9 @@ uint8_t matrix_scan(void)
   changed = debounce(raw_matrix, matrix, MATRIX_ROWS, changed);
 
   matrix_info();
+
+  if(changed)
+    apLvglNotifyKeyPress();
 
   return (uint8_t)changed;
 }

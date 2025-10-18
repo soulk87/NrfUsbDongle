@@ -97,8 +97,8 @@ uint8_t matrix_scan(void)
 
   matrix_info();
 
-  if(changed)
-    apLvglNotifyKeyPress();
+  // 키 변경 이벤트는 QMK의 레이어 시스템을 통해 처리됨
+  // apLvglNotifyKeyPress()는 제거됨 - 레이어 변경 시에만 UI 업데이트
 
   return (uint8_t)changed;
 }

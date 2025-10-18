@@ -18,9 +18,10 @@ void apLvglInit(void);
 void apLvglStart(void);
 
 /**
- * @brief 키 입력 알림 (다마고치 상호작용용)
+ * @brief 레이어 변경 알림 (QMK에서 호출)
+ * @param layer 현재 활성화된 레이어 번호
  */
-void apLvglNotifyKeyPress(void);
+void apLvglUpdateLayer(uint8_t layer);
 
 /**
  * @brief 왼쪽 키보드 연결 상태 업데이트

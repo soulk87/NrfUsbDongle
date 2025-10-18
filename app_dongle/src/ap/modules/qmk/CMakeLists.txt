@@ -42,6 +42,7 @@ file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
   ${QMK_ROOT_PATH}/quantum/keymap_introspection.c
   ${QMK_ROOT_PATH}/quantum/color.c
   ${QMK_ROOT_PATH}/quantum/mousekey.c
+  ${QMK_ROOT_PATH}/quantum/bitwise.c
 
 
   ${QMK_ROOT_PATH}/quantum/sequencer/*.c

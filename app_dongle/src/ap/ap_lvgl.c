@@ -10,6 +10,8 @@
 #include "quantum/action_layer.h"
 #include "quantum/keycode.h"
 #include "quantum/dynamic_keymap.h"
+#include "quantum/action_util.h"
+#include "quantum/modifiers.h"
 #include "keyboards/baram/45k/config.h"
 
 #define LVGL_THREAD_STACK_SIZE 4096
@@ -61,6 +63,9 @@ static volatile uint8_t current_layer = 0;
 static volatile uint8_t pending_layer = 0;
 static volatile bool layer_update_pending = false;
 
+// Modifier 상태 관리
+static uint8_t last_mods = 0;
+
 // 함수 프로토타입
 static void lvgl_thread_func(void *arg1, void *arg2, void *arg3);
 static void create_main_screen(void);
@@ -74,6 +79,10 @@ static void process_layer_update(void);
  */
 static const char* keycode_to_string(uint16_t keycode)
 {
+  // Shift 키 상태 확인
+  uint8_t mods = get_mods();
+  bool shift_pressed = (mods & MOD_MASK_SHIFT) != 0;
+  
   // 기본 키코드 매핑
   if (keycode >= KC_A && keycode <= KC_Z) {
     static char key_char[2] = {0};
@@ -81,12 +90,24 @@ static const char* keycode_to_string(uint16_t keycode)
     return key_char;
   }
   
+  // 숫자 키: Shift 눌림 상태에 따라 다른 문자 표시
   if (keycode >= KC_1 && keycode <= KC_0) {
-    static char num_char[2] = {0};
-    num_char[0] = (keycode == KC_0) ? '0' : ('1' + (keycode - KC_1));
-    return num_char;
+    if (shift_pressed) {
+      // Shift + 숫자 = 특수 문자
+      static const char* shifted_nums[] = {
+        "!", "@", "#", "$", "%", "^", "&", "*", "(", ")"
+      };
+      int index = (keycode == KC_0) ? 9 : (keycode - KC_1);
+      return shifted_nums[index];
+    } else {
+      // 일반 숫자
+      static char num_char[2] = {0};
+      num_char[0] = (keycode == KC_0) ? '0' : ('1' + (keycode - KC_1));
+      return num_char;
+    }
   }
   
+  // 기타 특수 키들도 Shift 상태 반영
   switch (keycode) {
     case KC_NO: return "";
     case KC_ESC: return "Esc";
@@ -102,17 +123,17 @@ static const char* keycode_to_string(uint16_t keycode)
     case KC_DOWN: return "↓";
     case KC_UP: return "↑";
     case KC_RGHT: return "→";
-    case KC_SCLN: return ";";
-    case KC_QUOT: return "'";
-    case KC_COMM: return ",";
-    case KC_DOT: return ".";
-    case KC_SLSH: return "/";
-    case KC_GRV: return "`";
-    case KC_MINS: return "-";
-    case KC_EQL: return "=";
-    case KC_LBRC: return "[";
-    case KC_RBRC: return "]";
-    case KC_BSLS: return "\\";
+    case KC_SCLN: return shift_pressed ? ":" : ";";
+    case KC_QUOT: return shift_pressed ? "\"" : "'";
+    case KC_COMM: return shift_pressed ? "<" : ",";
+    case KC_DOT: return shift_pressed ? ">" : ".";
+    case KC_SLSH: return shift_pressed ? "?" : "/";
+    case KC_GRV: return shift_pressed ? "~" : "`";
+    case KC_MINS: return shift_pressed ? "_" : "-";
+    case KC_EQL: return shift_pressed ? "+" : "=";
+    case KC_LBRC: return shift_pressed ? "{" : "[";
+    case KC_RBRC: return shift_pressed ? "}" : "]";
+    case KC_BSLS: return shift_pressed ? "|" : "\\";
     case KC_CAPS: return "Cap";
     case KC_DEL: return "Del";
     case KC_HOME: return "Hom";
@@ -304,6 +325,40 @@ static void update_display(lv_timer_t *timer)
   if (layer_update_pending) {
     process_layer_update();
   }
+  
+  // Modifier 상태 변화 감지 (Shift 키 등)
+  uint8_t current_mods = get_mods();
+  if (current_mods != last_mods) {
+    // Shift 상태가 변경되었으면 모든 키 라벨 업데이트
+    bool last_shift = (last_mods & MOD_MASK_SHIFT) != 0;
+    bool current_shift = (current_mods & MOD_MASK_SHIFT) != 0;
+    
+    if (last_shift != current_shift) {
+      // 현재 레이어의 모든 키 업데이트
+      for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
+        for (uint8_t col = 0; col < MATRIX_COLS; col++) {
+          if (key_buttons[row][col] != NULL) {
+            // KC_TRANSPARENT를 고려하여 실제 키코드 가져오기
+            uint16_t keycode = KC_NO;
+            for (int8_t layer = current_layer; layer >= 0; layer--) {
+              keycode = dynamic_keymap_get_keycode(layer, row, col);
+              if (keycode != KC_TRANSPARENT) {
+                break;
+              }
+            }
+            
+            // 키 라벨 업데이트
+            lv_obj_t *label = lv_obj_get_child(key_buttons[row][col], 0);
+            if (label != NULL) {
+              lv_label_set_text(label, keycode_to_string(keycode));
+            }
+          }
+        }
+      }
+    }
+    
+    last_mods = current_mods;
+  }
 }
 
 /**
@@ -326,8 +381,8 @@ static void lvgl_main_init(void)
   // 메인 화면 생성
   create_main_screen();
   
-  // 타이머 생성 (500ms마다 업데이트)
-  update_timer = lv_timer_create(update_display, 500, NULL);
+  // 타이머 생성 (100ms마다 업데이트 - Shift 키 등의 반응성 향상)
+  update_timer = lv_timer_create(update_display, 100, NULL);
 }
 
 /**

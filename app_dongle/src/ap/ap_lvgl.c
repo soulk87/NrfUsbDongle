@@ -55,12 +55,19 @@ static lv_obj_t *key_buttons[MATRIX_ROWS][MATRIX_COLS];
 // 타이머
 static lv_timer_t *update_timer = NULL;
 
+// 레이어 상태 관리 (멀티스레드 안전)
+static struct k_mutex layer_mutex;
+static volatile uint8_t current_layer = 0;
+static volatile uint8_t pending_layer = 0;
+static volatile bool layer_update_pending = false;
+
 // 함수 프로토타입
 static void lvgl_thread_func(void *arg1, void *arg2, void *arg3);
 static void create_main_screen(void);
 static void update_display(lv_timer_t *timer);
 static void create_key_button(uint8_t row, uint8_t col, int16_t x, int16_t y);
 static const char* keycode_to_string(uint16_t keycode);
+static void process_layer_update(void);
 
 /**
  * @brief Keycode를 문자열로 변환
@@ -227,13 +234,63 @@ static void create_main_screen(void)
 }
 
 /**
+ * @brief 레이어 업데이트 처리 (LVGL 스레드에서만 호출)
+ */
+static void process_layer_update(void)
+{
+  k_mutex_lock(&layer_mutex, K_FOREVER);
+  
+  if (!layer_update_pending) {
+    k_mutex_unlock(&layer_mutex);
+    return;
+  }
+  
+  uint8_t new_layer = pending_layer;
+  uint8_t old_layer = current_layer;
+  
+  // 레이어 라벨 업데이트
+  char layer_text[16];
+  snprintf(layer_text, sizeof(layer_text), "Layer %d", new_layer);
+  if (layer_label != NULL) {
+    lv_label_set_text(layer_label, layer_text);
+  }
+  
+  // 변경된 키만 업데이트
+  for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
+    for (uint8_t col = 0; col < MATRIX_COLS; col++) {
+      if (key_buttons[row][col] != NULL) {
+        // 이전 레이어와 새 레이어의 키코드 비교
+        uint16_t old_keycode = dynamic_keymap_get_keycode(old_layer, row, col);
+        uint16_t new_keycode = dynamic_keymap_get_keycode(new_layer, row, col);
+        
+        // 키코드가 변경된 경우에만 업데이트
+        if (old_keycode != new_keycode) {
+          lv_obj_t *label = lv_obj_get_child(key_buttons[row][col], 0);
+          if (label != NULL) {
+            lv_label_set_text(label, keycode_to_string(new_keycode));
+          }
+        }
+      }
+    }
+  }
+  
+  current_layer = new_layer;
+  layer_update_pending = false;
+  
+  k_mutex_unlock(&layer_mutex);
+}
+
+/**
  * @brief 디스플레이 업데이트 (타이머 콜백)
  */
 static void update_display(lv_timer_t *timer)
 {
   ARG_UNUSED(timer);
   
-  // 현재는 레이어 변경 시에만 업데이트하므로 여기서는 아무 작업 없음
+  // 레이어 업데이트가 대기 중이면 처리
+  if (layer_update_pending) {
+    process_layer_update();
+  }
 }
 
 /**
@@ -242,6 +299,9 @@ static void update_display(lv_timer_t *timer)
 static void lvgl_main_init(void)
 {
   lv_init();
+  
+  // Mutex 초기화
+  k_mutex_init(&layer_mutex);
   
   // 메인 스크린 배경 설정
   lv_obj_t *scr = lv_scr_act();
@@ -298,33 +358,21 @@ void apLvglStart(void)
 
 /**
  * @brief 레이어 변경 알림 (QMK에서 호출)
+ * @note 다른 스레드(QMK)에서 호출되므로 LVGL API를 직접 사용하지 않음
+ *       대신 플래그를 설정하고 LVGL 스레드에서 처리하도록 함
  */
 void apLvglUpdateLayer(uint8_t layer)
 {
   if (layer >= MAX_LAYERS) return;
   
-  // 레이어 라벨 업데이트
-  char layer_text[16];
-  snprintf(layer_text, sizeof(layer_text), "Layer %d", layer);
-  if (layer_label != NULL) {
-    lv_label_set_text(layer_label, layer_text);
+  // Mutex를 즉시 획득할 수 없으면 그냥 무시하고 넘어감
+  if (k_mutex_lock(&layer_mutex, K_NO_WAIT) != 0) {
+    return;
   }
   
-  // 모든 키 버튼의 텍스트 업데이트
-  for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
-    for (uint8_t col = 0; col < MATRIX_COLS; col++) {
-      if (key_buttons[row][col] != NULL) {
-        // EEPROM에서 현재 레이어의 키코드 가져오기
-        uint16_t keycode = dynamic_keymap_get_keycode(layer, row, col);
-        
-        // 버튼의 라벨 찾기 (첫 번째 자식)
-        lv_obj_t *label = lv_obj_get_child(key_buttons[row][col], 0);
-        if (label != NULL) {
-          lv_label_set_text(label, keycode_to_string(keycode));
-        }
-      }
-    }
-  }
+  pending_layer = layer;
+  layer_update_pending = true;
+  k_mutex_unlock(&layer_mutex);
 }
 
 /**

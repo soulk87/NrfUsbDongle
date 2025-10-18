@@ -259,11 +259,24 @@ static void process_layer_update(void)
   for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
     for (uint8_t col = 0; col < MATRIX_COLS; col++) {
       if (key_buttons[row][col] != NULL) {
-        // 이전 레이어와 새 레이어의 키코드 비교
-        uint16_t old_keycode = dynamic_keymap_get_keycode(old_layer, row, col);
-        uint16_t new_keycode = dynamic_keymap_get_keycode(new_layer, row, col);
+        // KC_TRANSPARENT를 고려하여 실제 키코드 가져오기
+        uint16_t old_keycode = KC_NO;
+        for (int8_t layer = old_layer; layer >= 0; layer--) {
+          old_keycode = dynamic_keymap_get_keycode(layer, row, col);
+          if (old_keycode != KC_TRANSPARENT) {
+            break;
+          }
+        }
         
-        // 키코드가 변경된 경우에만 업데이트
+        uint16_t new_keycode = KC_NO;
+        for (int8_t layer = new_layer; layer >= 0; layer--) {
+          new_keycode = dynamic_keymap_get_keycode(layer, row, col);
+          if (new_keycode != KC_TRANSPARENT) {
+            break;
+          }
+        }
+        
+        // 실제 표시되는 키코드가 변경된 경우에만 업데이트
         if (old_keycode != new_keycode) {
           lv_obj_t *label = lv_obj_get_child(key_buttons[row][col], 0);
           if (label != NULL) {

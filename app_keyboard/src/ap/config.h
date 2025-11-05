@@ -2,10 +2,10 @@
 
 #include "my_key_protocol.h"
 
-#define KEY_BOARD_ID DEVICE_ID_LEFT
+#define KEY_BOARD_ID DEVICE_ID_RIGHT
 
-#define MATRIX_ROWS 3
-#define MATRIX_COLS 2
+#define MATRIX_ROWS 4
+#define MATRIX_COLS 6
 
 #define DEBOUNCE 5
 

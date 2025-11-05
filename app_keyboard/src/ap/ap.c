@@ -56,6 +56,7 @@ void apMain(void)
     {
       last_heartbeat_time = millis();
       key_protocol_send_heartbeat(KEY_BOARD_ID, 0x01, 100);
+      delay(5);
     }
   }
 }

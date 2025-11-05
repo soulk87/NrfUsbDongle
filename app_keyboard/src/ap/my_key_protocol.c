@@ -14,6 +14,8 @@
 
 #define HEARTBEAT_TIMEOUT_MS     1500
 #define CONNECTION_CHECK_INTERVAL 500
+#define CONNECTION_CHECK_INTERVAL_OFFSET 100
+#define MAX_TX_RETRIES 5
 
 // Header size (Start + DeviceID + Version + PacketType + Length)
 #define HEADER_SIZE 5
@@ -348,6 +350,23 @@ static bool tx_packet_prepare(uint8_t device_id, uint8_t packet_type, uint8_t *p
     return true;
 }
 
+// 패킷 전송 함수 (재시도 포함)
+static bool tx_packet_send(uint32_t packet_length)
+{
+    for (int retry = 0; retry < MAX_TX_RETRIES; retry++)
+    {
+        uint32_t sent_len = rfWrite(tx_buffer, packet_length);
+        if (sent_len == packet_length)
+        {
+            tx_packets++;
+            return true;
+        }
+    }
+    
+    tx_errors++;
+    return false;
+}
+
 // 키 데이터 전송 함수
 bool key_protocol_send_key_data(uint8_t device_id, uint8_t *key_matrix, uint8_t column_count)
 {
@@ -368,20 +387,9 @@ bool key_protocol_send_key_data(uint8_t device_id, uint8_t *key_matrix, uint8_t 
         return false;
     }
 
-    // 패킷 전송
+    // 패킷 전송 (재시도 포함)
     uint32_t packet_length = HEADER_SIZE + (column_count + 1) + FOOTER_SIZE;
-    uint32_t sent_len = rfWrite(tx_buffer, packet_length);
-
-    if (sent_len == packet_length)
-    {
-        tx_packets++;
-        return true;
-    }
-    else
-    {
-        tx_errors++;
-        return false;
-    }
+    return tx_packet_send(packet_length);
 }
 
 // 트랙볼 데이터 전송 함수
@@ -405,19 +413,8 @@ bool key_protocol_send_trackball_data(uint8_t device_id, int16_t x, int16_t y)
         return false;
     }
 
-    // 패킷 전송
-    uint32_t sent_len = rfWrite(tx_buffer, HEADER_SIZE + 4 + FOOTER_SIZE);
-
-    if (sent_len == (HEADER_SIZE + 4 + FOOTER_SIZE))
-    {
-        tx_packets++;
-        return true;
-    }
-    else
-    {
-        tx_errors++;
-        return false;
-    }
+    // 패킷 전송 (재시도 포함)
+    return tx_packet_send(HEADER_SIZE + 4 + FOOTER_SIZE);
 }
 
 // 시스템 상태 전송 함수
@@ -429,19 +426,8 @@ bool key_protocol_send_system_data(uint8_t device_id, uint8_t *system_data, uint
         return false;
     }
 
-    // 패킷 전송
-    uint32_t sent_len = rfWrite(tx_buffer, HEADER_SIZE + length + FOOTER_SIZE);
-
-    if (sent_len == (HEADER_SIZE + length + FOOTER_SIZE))
-    {
-        tx_packets++;
-        return true;
-    }
-    else
-    {
-        tx_errors++;
-        return false;
-    }
+    // 패킷 전송 (재시도 포함)
+    return tx_packet_send(HEADER_SIZE + length + FOOTER_SIZE);
 }
 
 // 배터리 정보 전송 함수
@@ -455,19 +441,8 @@ bool key_protocol_send_battery_data(uint8_t device_id, uint8_t battery_level)
         return false;
     }
 
-    // 패킷 전송
-    uint32_t sent_len = rfWrite(tx_buffer, HEADER_SIZE + 1 + FOOTER_SIZE);
-
-    if (sent_len == (HEADER_SIZE + 1 + FOOTER_SIZE))
-    {
-        tx_packets++;
-        return true;
-    }
-    else
-    {
-        tx_errors++;
-        return false;
-    }
+    // 패킷 전송 (재시도 포함)
+    return tx_packet_send(HEADER_SIZE + 1 + FOOTER_SIZE);
 }
 
 // 하트비트 데이터 전송 함수
@@ -483,15 +458,8 @@ bool key_protocol_send_heartbeat(uint8_t device_id, uint8_t status_flag, uint8_t
         return false;
     }
 
-    uint32_t sent_len = rfWrite(tx_buffer, HEADER_SIZE + sizeof(payload) + FOOTER_SIZE);
-    if (sent_len == (HEADER_SIZE + sizeof(payload) + FOOTER_SIZE))
-    {
-        tx_packets++;
-        return true;
-    }
-
-    tx_errors++;
-    return false;
+    // 패킷 전송 (재시도 포함)
+    return tx_packet_send(HEADER_SIZE + sizeof(payload) + FOOTER_SIZE);
 }
 
 bool key_protocol_is_connected(uint8_t device_id)

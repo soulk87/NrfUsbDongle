@@ -4,6 +4,7 @@
 #include "lvgl/lvgl.h"
 #include <zephyr/kernel.h>
 #include <stdio.h>
+#include <string.h>
 
 // QMK 헤더 포함
 #include "quantum/quantum.h"
@@ -73,6 +74,38 @@ static void update_display(lv_timer_t *timer);
 static void create_key_button(uint8_t row, uint8_t col, int16_t x, int16_t y);
 static const char* keycode_to_string(uint16_t keycode);
 static void process_layer_update(void);
+static void update_key_label(lv_obj_t *label, const char *text);
+
+/**
+ * @brief 키 라벨 업데이트 (텍스트 길이에 따라 폰트 크기 조정)
+ */
+static void update_key_label(lv_obj_t *label, const char *text)
+{
+  if (label == NULL || text == NULL) return;
+  
+  // 텍스트를 최대 2글자로 제한
+  static char display_text[3];
+  size_t len = strlen(text);
+  
+  if (len > 2) {
+    // 2글자 초과시 앞 2글자만 사용
+    strncpy(display_text, text, 2);
+    display_text[2] = '\0';
+  } else {
+    strncpy(display_text, text, sizeof(display_text) - 1);
+    display_text[sizeof(display_text) - 1] = '\0';
+  }
+  
+  // 라벨 텍스트 설정
+  lv_label_set_text(label, display_text);
+  
+  // 2글자인 경우 폰트 크기를 10으로, 그 외는 14로 설정
+  if (strlen(display_text) == 2) {
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_10, 0);
+  } else {
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_14, 0);
+  }
+}
 
 /**
  * @brief Keycode를 문자열로 변환
@@ -110,19 +143,19 @@ static const char* keycode_to_string(uint16_t keycode)
   // 기타 특수 키들도 Shift 상태 반영
   switch (keycode) {
     case KC_NO: return "";
-    case KC_ESC: return "Esc";
-    case KC_TAB: return "Tab";
-    case KC_SPC: return "Spc";
-    case KC_ENT: return "Ent";
+    case KC_ESC: return "Es";
+    case KC_TAB: return "Tb";
+    case KC_SPC: return "Sp";
+    case KC_ENT: return "En";
     case KC_BSPC: return "Bk";
-    case KC_LSFT: return "Sft";
-    case KC_LCTL: return "Ctl";
-    case KC_LALT: return "Alt";
-    case KC_LGUI: return "Gui";
-    case KC_LEFT: return "←";
-    case KC_DOWN: return "↓";
-    case KC_UP: return "↑";
-    case KC_RGHT: return "→";
+    case KC_LSFT: return "Sf";
+    case KC_LCTL: return "Ct";
+    case KC_LALT: return "Al";
+    case KC_LGUI: return "Gu";
+    case KC_LEFT: return "<-";
+    case KC_DOWN: return "Dn";
+    case KC_UP: return "Up";
+    case KC_RGHT: return "->";
     case KC_SCLN: return shift_pressed ? ":" : ";";
     case KC_QUOT: return shift_pressed ? "\"" : "'";
     case KC_COMM: return shift_pressed ? "<" : ",";
@@ -134,12 +167,12 @@ static const char* keycode_to_string(uint16_t keycode)
     case KC_LBRC: return shift_pressed ? "{" : "[";
     case KC_RBRC: return shift_pressed ? "}" : "]";
     case KC_BSLS: return shift_pressed ? "|" : "\\";
-    case KC_CAPS: return "Cap";
-    case KC_DEL: return "Del";
-    case KC_HOME: return "Hom";
-    case KC_END: return "End";
-    case KC_PGUP: return "PgU";
-    case KC_PGDN: return "PgD";
+    case KC_CAPS: return "Cp";
+    case KC_DEL: return "De";
+    case KC_HOME: return "Hm";
+    case KC_END: return "Ed";
+    case KC_PGUP: return "PU";
+    case KC_PGDN: return "PD";
     default:
       // 레이어 전환 키
       if (keycode >= QK_MOMENTARY && keycode <= QK_MOMENTARY_MAX) {
@@ -182,9 +215,8 @@ static void create_key_button(uint8_t row, uint8_t col, int16_t x, int16_t y)
   
   // 키 라벨 생성
   lv_obj_t *label = lv_label_create(btn);
-  lv_label_set_text(label, keycode_to_string(keycode));
   lv_obj_set_style_text_color(label, lv_color_hex(COLOR_TEXT), 0);
-  lv_obj_set_style_text_font(label, &lv_font_montserrat_14, 0);
+  update_key_label(label, keycode_to_string(keycode));
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
 }
 
@@ -301,7 +333,7 @@ static void process_layer_update(void)
         if (old_keycode != new_keycode) {
           lv_obj_t *label = lv_obj_get_child(key_buttons[row][col], 0);
           if (label != NULL) {
-            lv_label_set_text(label, keycode_to_string(new_keycode));
+            update_key_label(label, keycode_to_string(new_keycode));
           }
         }
       }
@@ -350,7 +382,7 @@ static void update_display(lv_timer_t *timer)
             // 키 라벨 업데이트
             lv_obj_t *label = lv_obj_get_child(key_buttons[row][col], 0);
             if (label != NULL) {
-              lv_label_set_text(label, keycode_to_string(keycode));
+              update_key_label(label, keycode_to_string(keycode));
             }
           }
         }

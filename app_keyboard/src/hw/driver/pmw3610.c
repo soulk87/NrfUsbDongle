@@ -71,7 +71,7 @@ LOG_MODULE_REGISTER(pmw3610, LOG_LEVEL_INF);
 #define PMW3610_DATA_SIZE_BITS 12
 
 #define RESET_DELAY_MS 10
-#define INIT_OBSERVATION_DELAY_MS 10
+#define INIT_OBSERVATION_DELAY_MS 100
 #define CLOCK_ON_DELAY_US 300
 
 #define RES_STEP 200
@@ -103,7 +103,7 @@ static uint8_t pmw3610_rx_buffer[16] = {0};
 struct pmw3610_config pmw3610_cfg = {
     .axis_x = 0,
     .axis_y = 1,
-    .res_cpi = 1600,
+    .res_cpi = 400,
     .invert_x = true,
     .invert_y = true,
     .force_awake = true,
@@ -443,7 +443,7 @@ static int pmw3610_configure(void)
         return ret;
     }
 
-    delay_us(RESET_DELAY_MS);
+    delay(RESET_DELAY_MS);
     // }
 
     ret = pmw3610_read_reg(PMW3610_PROD_ID, &val);

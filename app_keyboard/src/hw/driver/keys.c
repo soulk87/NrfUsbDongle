@@ -43,11 +43,16 @@ static const struct gpio_dt_spec rows_gpio_tbl[KEYS_ROWS] = {
     GPIO_DT_SPEC_GET(DT_NODELABEL(row0), gpios),
     GPIO_DT_SPEC_GET(DT_NODELABEL(row1), gpios),
     GPIO_DT_SPEC_GET(DT_NODELABEL(row2), gpios),
+    GPIO_DT_SPEC_GET(DT_NODELABEL(row3), gpios),
 };
 
 static const struct gpio_dt_spec cols_gpio_tbl[KEYS_COLS] = {
     GPIO_DT_SPEC_GET(DT_NODELABEL(col0), gpios),
     GPIO_DT_SPEC_GET(DT_NODELABEL(col1), gpios),
+    GPIO_DT_SPEC_GET(DT_NODELABEL(col2), gpios),
+    GPIO_DT_SPEC_GET(DT_NODELABEL(col3), gpios),
+    GPIO_DT_SPEC_GET(DT_NODELABEL(col4), gpios),
+    GPIO_DT_SPEC_GET(DT_NODELABEL(col5), gpios),
 };
 
 
@@ -87,11 +92,12 @@ bool keysInitGpio(void)
   lockGpio();
 
   for (int i = 0; i < ARRAY_SIZE(rows_gpio_tbl); i++) {
-      gpio_pin_configure_dt(&rows_gpio_tbl[i], GPIO_INPUT | GPIO_PULL_UP);
+      gpio_pin_configure_dt(&rows_gpio_tbl[i], GPIO_INPUT | GPIO_PULL_DOWN);
   }
 
   for (int j = 0; j < ARRAY_SIZE(cols_gpio_tbl); j++) {
       gpio_pin_configure_dt(&cols_gpio_tbl[j], GPIO_OUTPUT_ACTIVE);
+      gpio_pin_set_dt(&cols_gpio_tbl[j], 0); // Set columns low
   }
 
   unLockGpio();
@@ -180,12 +186,12 @@ void keysScan(void)
   // lockGpio();
   for (int cols_i = 0; cols_i < KEYS_COLS; cols_i++)
   {
-    gpio_pin_set_dt(&cols_gpio_tbl[cols_i], 0);
+    gpio_pin_set_dt(&cols_gpio_tbl[cols_i], 1);
     k_usleep(10);
     for (int rows_i = 0; rows_i < KEYS_ROWS; rows_i++)
     {
       // Read the raw state
-      new_state = (gpio_pin_get_dt(&rows_gpio_tbl[rows_i]) == 0) ? 1 : 0;
+      new_state = (gpio_pin_get_dt(&rows_gpio_tbl[rows_i]) == 1) ? 1 : 0;
       current_state = (cols_debounced[cols_i] & (1 << rows_i)) ? 1 : 0;
       
       // If the state is different from the debounced state
@@ -212,7 +218,7 @@ void keysScan(void)
         scan_buf[cols_i] |= (1 << rows_i);
       }
     }
-    gpio_pin_set_dt(&cols_gpio_tbl[cols_i], 1);
+    gpio_pin_set_dt(&cols_gpio_tbl[cols_i], 0);
   }
   // unLockGpio();
   

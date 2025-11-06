@@ -41,11 +41,13 @@
 			"random": "c",
 			"hw_def.h": "c",
 			"nrfx_spim.h": "c",
-			"st7789.h": "c"
+			"st7789.h": "c",
+			"hw.h": "c"
 		},
 		"files.exclude": {
 			// "**/app_keyboard": true,
 			"**/app_dongle": true,
+			"**/Samples": true
 		}
 	}
 }

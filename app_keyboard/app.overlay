@@ -33,5 +33,12 @@
         col5: col5 {
             gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
         };
+        vcc_on: vcc_on {
+            gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+        };
+
+        pmw3610_rst: pmw3610_rst {
+            gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
+        };
     };
 };

@@ -13,6 +13,8 @@ bool hwInit(void)
 
   cliInit();
   // logInit();
+  gpioInit();
+  gpioPinWrite(HW_GPIO_VCC_ON, _DEF_HIGH);
 
   uartInit();
   uartOpen(_DEF_UART1, 115200);

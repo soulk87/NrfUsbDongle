@@ -58,8 +58,10 @@
 #define _USE_HW_KEYS
 #define      HW_KEYS_PRESS_MAX      6
 
-// #define _USE_HW_GPIO
-// #define      HW_GPIO_MAX_CH         4
+#define _USE_HW_GPIO
+#define      HW_GPIO_VCC_ON         0
+#define      HW_GPIO_PMW3610_RST    1
+#define      HW_GPIO_MAX_CH         2
 
 // #define _USE_HW_ADC                 
 // #define      HW_ADC_MAX_CH          1

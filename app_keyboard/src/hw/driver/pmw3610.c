@@ -1,5 +1,5 @@
 #include "pmw3610.h"
-
+#include "gpio.h"
 #include "spi.h"
 #include "bsp.h"
 #include <zephyr/logging/log.h>
@@ -429,11 +429,15 @@ static int pmw3610_configure(void)
     //         return ret;
     //     }
 
-    //     delay_us(RESET_DELAY_MS);
+        delay_us(RESET_DELAY_MS);
 
-    //     gpio_pin_set_dt(&cfg->reset_gpio, 0);
+        gpioPinWrite(HW_GPIO_PMW3610_RST, _DEF_LOW);
 
-    //     delay_us(RESET_DELAY_MS);
+        delay_us(RESET_DELAY_MS);
+
+        gpioPinWrite(HW_GPIO_PMW3610_RST, _DEF_HIGH);
+
+        delay_us(RESET_DELAY_MS);
     // }
     // else
     // {

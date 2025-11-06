@@ -21,6 +21,7 @@ extern "C" {
 // #include "adc.h"
 // #include "battery.h"
 #include "driver/usb/usb.h"
+#include "gpio.h"
 // #include "driver/ble/ble.h"
 #include "spi.h"
 #include "sensor/pmw3610.h"

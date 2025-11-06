@@ -45,8 +45,8 @@
 			"hw.h": "c"
 		},
 		"files.exclude": {
-			// "**/app_keyboard": true,
-			"**/app_dongle": true,
+			"**/app_keyboard": true,
+			// "**/app_dongle": true,
 			"**/Samples": true
 		}
 	}

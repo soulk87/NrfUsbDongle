@@ -287,6 +287,30 @@ static void create_main_screen(void)
 }
 
 /**
+ * @brief 활성화된 레이어에서 실제 키코드 찾기
+ * @param layer_state 현재 레이어 상태 (비트마스크)
+ * @param row 행 번호
+ * @param col 열 번호
+ * @return 실제 키코드 (KC_TRANSPARENT가 아닌 첫 번째 키코드)
+ */
+static uint16_t get_keycode_from_active_layers(layer_state_t layer_state, uint8_t row, uint8_t col)
+{
+  // 최상위 레이어부터 확인 (MAX_LAYERS-1 -> 0)
+  for (int8_t layer = MAX_LAYERS - 1; layer >= 0; layer--) {
+    // 해당 레이어가 활성화되어 있는지 확인
+    // Layer 0은 항상 활성화되어 있는 것으로 간주
+    if (layer == 0 || (layer_state & ((layer_state_t)1 << layer))) {
+      uint16_t keycode = dynamic_keymap_get_keycode(layer, row, col);
+      if (keycode != KC_TRANSPARENT) {
+        return keycode;
+      }
+    }
+  }
+  
+  return KC_NO;
+}
+
+/**
  * @brief 레이어 업데이트 처리 (LVGL 스레드에서만 호출)
  */
 static void process_layer_update(void)
@@ -308,33 +332,20 @@ static void process_layer_update(void)
     lv_label_set_text(layer_label, layer_text);
   }
   
-  // 변경된 키만 업데이트
+  // 현재 활성화된 레이어 상태 가져오기
+  layer_state_t current_layer_state = layer_state;
+  
+  // 모든 키 업데이트 (활성화된 레이어만 고려)
   for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
     for (uint8_t col = 0; col < MATRIX_COLS; col++) {
       if (key_buttons[row][col] != NULL) {
-        // KC_TRANSPARENT를 고려하여 실제 키코드 가져오기
-        uint16_t old_keycode = KC_NO;
-        for (int8_t layer = old_layer; layer >= 0; layer--) {
-          old_keycode = dynamic_keymap_get_keycode(layer, row, col);
-          if (old_keycode != KC_TRANSPARENT) {
-            break;
-          }
-        }
+        // 활성화된 레이어에서 실제 키코드 가져오기
+        uint16_t keycode = get_keycode_from_active_layers(current_layer_state, row, col);
         
-        uint16_t new_keycode = KC_NO;
-        for (int8_t layer = new_layer; layer >= 0; layer--) {
-          new_keycode = dynamic_keymap_get_keycode(layer, row, col);
-          if (new_keycode != KC_TRANSPARENT) {
-            break;
-          }
-        }
-        
-        // 실제 표시되는 키코드가 변경된 경우에만 업데이트
-        if (old_keycode != new_keycode) {
-          lv_obj_t *label = lv_obj_get_child(key_buttons[row][col], 0);
-          if (label != NULL) {
-            update_key_label(label, keycode_to_string(new_keycode));
-          }
+        // 키 라벨 업데이트
+        lv_obj_t *label = lv_obj_get_child(key_buttons[row][col], 0);
+        if (label != NULL) {
+          update_key_label(label, keycode_to_string(keycode));
         }
       }
     }
@@ -366,18 +377,15 @@ static void update_display(lv_timer_t *timer)
     bool current_shift = (current_mods & MOD_MASK_SHIFT) != 0;
     
     if (last_shift != current_shift) {
+      // 현재 활성화된 레이어 상태 가져오기
+      layer_state_t current_layer_state = layer_state;
+      
       // 현재 레이어의 모든 키 업데이트
       for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
         for (uint8_t col = 0; col < MATRIX_COLS; col++) {
           if (key_buttons[row][col] != NULL) {
-            // KC_TRANSPARENT를 고려하여 실제 키코드 가져오기
-            uint16_t keycode = KC_NO;
-            for (int8_t layer = current_layer; layer >= 0; layer--) {
-              keycode = dynamic_keymap_get_keycode(layer, row, col);
-              if (keycode != KC_TRANSPARENT) {
-                break;
-              }
-            }
+            // 활성화된 레이어에서 실제 키코드 가져오기
+            uint16_t keycode = get_keycode_from_active_layers(current_layer_state, row, col);
             
             // 키 라벨 업데이트
             lv_obj_t *label = lv_obj_get_child(key_buttons[row][col], 0);

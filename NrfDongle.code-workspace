@@ -42,12 +42,13 @@
 			"hw_def.h": "c",
 			"nrfx_spim.h": "c",
 			"st7789.h": "c",
-			"hw.h": "c"
+			"hw.h": "c",
+			"usb.h": "c"
 		},
 		"files.exclude": {
-			"**/app_keyboard": true,
+			// "**/app_keyboard": true,
 			// "**/app_dongle": true,
-			"**/Samples": true
+			// "**/Samples": true
 		}
 	}
 }

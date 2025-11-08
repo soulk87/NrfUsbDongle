@@ -2,9 +2,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include QMK_KEYBOARD_H
-#include "action_layer.h"
+#include "pointing_device.h"
+
 // LVGL 레이어 업데이트 함수 (ap_lvgl.c에 정의됨)
 extern void apLvglUpdateLayer(uint8_t layer);
+
+
 
 
 
@@ -29,16 +32,4 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     },
     
 };
-volatile uint32_t test_keymap_c = 0;
 
-/**
- * @brief 레이어 상태 변경 콜백
- * 레이어가 변경될 때마다 LVGL 디스플레이를 업데이트합니다.
- */
-layer_state_t layer_state_set_user(layer_state_t state)
-{
-    uint8_t layer = get_highest_layer(state);
-    apLvglUpdateLayer(layer);
-
-    return state;   
-}

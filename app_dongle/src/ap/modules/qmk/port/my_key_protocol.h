@@ -30,4 +30,8 @@ uint8_t key_protocol_get_battery_level(uint8_t device_id);
 uint8_t key_protocol_get_status_flag(uint8_t device_id);
 uint32_t key_protocol_get_last_heartbeat_elapsed(uint8_t device_id);
 
+// Get all device states at once (thread-safe)
+void key_protocol_get_all_states(bool *left_connected, uint8_t *left_battery,
+                                  bool *right_connected, uint8_t *right_battery);
+
 #endif /* MY_KEY_PROTOCOL_H_ */

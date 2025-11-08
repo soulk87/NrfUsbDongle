@@ -1,5 +1,7 @@
 #include "ap_status_bar.h"
+#include "my_key_protocol.h"
 #include <stdlib.h>
+#include "usb.h"
 
 // 상태바 데이터 구조체
 typedef struct {
@@ -20,9 +22,9 @@ static lv_obj_t *right_kb_icon;     // 오른쪽 키보드 아이콘 컨테이�
 static lv_obj_t *right_bat_bar;     // 오른쪽 배터리 바
 static lv_obj_t *right_bat_fill;    // 오른쪽 배터리 채우기
 
-static lv_obj_t *left_status_led;   // 왼쪽 연결 상태 LED (노랑/파랑)
+static lv_obj_t *left_status_led;   // 왼쪽 연결 상태 LED (초록/빨강)
 static lv_obj_t *usb_led;           // USB LED (초록/빨강)
-static lv_obj_t *right_status_led;  // 오른쪽 연결 상태 LED (노랑/파랑)
+static lv_obj_t *right_status_led;  // 오른쪽 연결 상태 LED (초록/빨강)
 
 // 상태바 데이터
 static status_bar_data_t status_data = {
@@ -32,6 +34,12 @@ static status_bar_data_t status_data = {
   .right_battery = 0,
   .usb_connected = false
 };
+
+// 타이머
+static lv_timer_t *status_check_timer = NULL;
+
+// 함수 프로토타입
+static void check_wireless_status(lv_timer_t *timer);
 
 /**
  * @brief 상태바 생성 (그래픽 기반)
@@ -86,11 +94,11 @@ void apStatusBarCreate(void)
   lv_obj_set_style_radius(left_bat_tip, 1, 0);
   
   // ============ 중앙 상태 LED 3개 ============
-  // 왼쪽 연결 상태 LED (노랑/파랑)
+  // 왼쪽 연결 상태 LED (초록/빨강)
   left_status_led = lv_obj_create(status_bar);
   lv_obj_set_size(left_status_led, 10, 10);
   lv_obj_align(left_status_led, LV_ALIGN_TOP_MID, -15, 10);
-  lv_obj_set_style_bg_color(left_status_led, lv_color_hex(0xFFFF00), 0);  // 기본 노랑
+  lv_obj_set_style_bg_color(left_status_led, lv_color_hex(0xFF0000), 0);  // 기본 빨강
   lv_obj_set_style_border_width(left_status_led, 0, 0);
   lv_obj_set_style_radius(left_status_led, LV_RADIUS_CIRCLE, 0);
   
@@ -102,11 +110,11 @@ void apStatusBarCreate(void)
   lv_obj_set_style_border_width(usb_led, 0, 0);
   lv_obj_set_style_radius(usb_led, LV_RADIUS_CIRCLE, 0);
   
-  // 오른쪽 연결 상태 LED (노랑/파랑)
+  // 오른쪽 연결 상태 LED (초록/빨강)
   right_status_led = lv_obj_create(status_bar);
   lv_obj_set_size(right_status_led, 10, 10);
   lv_obj_align(right_status_led, LV_ALIGN_TOP_MID, 15, 10);
-  lv_obj_set_style_bg_color(right_status_led, lv_color_hex(0xFFFF00), 0);  // 기본 노랑
+  lv_obj_set_style_bg_color(right_status_led, lv_color_hex(0xFF0000), 0);  // 기본 빨강
   lv_obj_set_style_border_width(right_status_led, 0, 0);
   lv_obj_set_style_radius(right_status_led, LV_RADIUS_CIRCLE, 0);
   
@@ -146,6 +154,32 @@ void apStatusBarCreate(void)
   lv_obj_set_style_bg_color(right_bat_tip, lv_color_hex(0x888888), 0);
   lv_obj_set_style_border_width(right_bat_tip, 0, 0);
   lv_obj_set_style_radius(right_bat_tip, 1, 0);
+  
+  // 타이머 생성 (1초마다 무선 통신 상태 확인)
+  status_check_timer = lv_timer_create(check_wireless_status, 1000, NULL);
+}
+
+/**
+ * @brief 무선 통신 상태 확인 및 업데이트 (타이머 콜백)
+ */
+static void check_wireless_status(lv_timer_t *timer)
+{
+  ARG_UNUSED(timer);
+  
+  // key_protocol에서 모든 상태를 한 번에 가져오기 (thread-safe)
+  bool left_conn, right_conn;
+  uint8_t left_bat, right_bat;
+  
+  key_protocol_get_all_states(&left_conn, &left_bat, &right_conn, &right_bat);
+  
+  // 왼쪽 키보드 업데이트
+  apStatusBarUpdateLeftKeyboard(left_conn, left_bat);
+  
+  // 오른쪽 키보드 업데이트
+  apStatusBarUpdateRightKeyboard(right_conn, right_bat);
+  
+  // USB 연결 상태 업데이트
+  apStatusBarUpdateUSB(usbIsConnect());
 }
 
 /**
@@ -158,8 +192,8 @@ void apStatusBarUpdateLeftKeyboard(bool connected, uint8_t battery)
   
   if (connected)
   {
-    // 연결 상태 LED: 파랑
-    lv_obj_set_style_bg_color(left_status_led, lv_color_hex(0x0000FF), 0);
+    // 연결 상태 LED: 초록
+    lv_obj_set_style_bg_color(left_status_led, lv_color_hex(0x00FF00), 0);
     
     // 배터리 색상
     uint32_t bat_color;
@@ -178,8 +212,8 @@ void apStatusBarUpdateLeftKeyboard(bool connected, uint8_t battery)
   }
   else
   {
-    // 연결 끊김: 노랑
-    lv_obj_set_style_bg_color(left_status_led, lv_color_hex(0xFFFF00), 0);
+    // 연결 끊김: 빨강
+    lv_obj_set_style_bg_color(left_status_led, lv_color_hex(0xFF0000), 0);
     lv_obj_set_width(left_bat_fill, 0);
   }
 }
@@ -194,8 +228,8 @@ void apStatusBarUpdateRightKeyboard(bool connected, uint8_t battery)
   
   if (connected)
   {
-    // 연결 상태 LED: 파랑
-    lv_obj_set_style_bg_color(right_status_led, lv_color_hex(0x0000FF), 0);
+    // 연결 상태 LED: 초록
+    lv_obj_set_style_bg_color(right_status_led, lv_color_hex(0x00FF00), 0);
     
     // 배터리 색상
     uint32_t bat_color;
@@ -214,8 +248,8 @@ void apStatusBarUpdateRightKeyboard(bool connected, uint8_t battery)
   }
   else
   {
-    // 연결 끊김: 노랑
-    lv_obj_set_style_bg_color(right_status_led, lv_color_hex(0xFFFF00), 0);
+    // 연결 끊김: 빨강
+    lv_obj_set_style_bg_color(right_status_led, lv_color_hex(0xFF0000), 0);
     lv_obj_set_width(right_bat_fill, 0);
   }
 }

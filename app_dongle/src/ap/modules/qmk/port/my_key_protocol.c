@@ -2,6 +2,7 @@
 #include "hw.h"
 #include "pointing_device.h"
 #include <string.h>
+#include <zephyr/kernel.h>
 
 // Protocol constants
 #define START_BYTE 0xAA
@@ -76,6 +77,9 @@ static heartbeat_state_t heartbeat_states[] =
     {DEVICE_ID_RIGHT, 0u, 0u, 0u, false},
 };
 
+// Mutex for heartbeat_states access
+static struct k_mutex heartbeat_mutex;
+
 static uint32_t last_connection_check_time = 0u;
 
 static heartbeat_state_t *get_heartbeat_state(uint8_t device_id)
@@ -92,6 +96,9 @@ static heartbeat_state_t *get_heartbeat_state(uint8_t device_id)
 
 bool key_protocol_init(void)
 {
+    // Initialize mutex
+    k_mutex_init(&heartbeat_mutex);
+    
     // Initialize the RF module
     if (!rfInit())
     {
@@ -143,6 +150,9 @@ void key_protocol_update(void)
     if (current_time - last_connection_check_time >= CONNECTION_CHECK_INTERVAL + CONNECTION_CHECK_INTERVAL_OFFSET)
     {
         last_connection_check_time = current_time;
+        
+        k_mutex_lock(&heartbeat_mutex, K_FOREVER);
+        
         for (size_t i = 0; i < sizeof(heartbeat_states) / sizeof(heartbeat_states[0]); ++i)
         {
             heartbeat_state_t *state = &heartbeat_states[i];
@@ -165,6 +175,8 @@ void key_protocol_update(void)
                 is_moving = false;
             }
         }
+        
+        k_mutex_unlock(&heartbeat_mutex);
     }
 }
 
@@ -283,9 +295,12 @@ static void process_heartbeat_data(uint8_t device_id, uint8_t *payload, uint8_t 
         return;
     }
 
+    k_mutex_lock(&heartbeat_mutex, K_FOREVER);
+    
     heartbeat_state_t *state = get_heartbeat_state(device_id);
     if (state == NULL)
     {
+        k_mutex_unlock(&heartbeat_mutex);
         return;
     }
 
@@ -295,6 +310,8 @@ static void process_heartbeat_data(uint8_t device_id, uint8_t *payload, uint8_t 
     state->battery_level = payload[1];
     state->last_time     = millis();
     state->connected     = true;
+    
+    k_mutex_unlock(&heartbeat_mutex);
 
     // if (!was_connected)
     // {
@@ -498,31 +515,86 @@ bool key_protocol_send_heartbeat(uint8_t device_id, uint8_t status_flag, uint8_t
 
 bool key_protocol_is_connected(uint8_t device_id)
 {
+    k_mutex_lock(&heartbeat_mutex, K_FOREVER);
     heartbeat_state_t *state = get_heartbeat_state(device_id);
-    return (state != NULL) ? state->connected : false;
+    bool result = (state != NULL) ? state->connected : false;
+    k_mutex_unlock(&heartbeat_mutex);
+    return result;
 }
 
 uint8_t key_protocol_get_battery_level(uint8_t device_id)
 {
+    k_mutex_lock(&heartbeat_mutex, K_FOREVER);
     heartbeat_state_t *state = get_heartbeat_state(device_id);
-    return (state != NULL) ? state->battery_level : 0u;
+    uint8_t result = (state != NULL) ? state->battery_level : 0u;
+    k_mutex_unlock(&heartbeat_mutex);
+    return result;
 }
 
 uint8_t key_protocol_get_status_flag(uint8_t device_id)
 {
+    k_mutex_lock(&heartbeat_mutex, K_FOREVER);
     heartbeat_state_t *state = get_heartbeat_state(device_id);
-    return (state != NULL) ? state->status_flag : 0u;
+    uint8_t result = (state != NULL) ? state->status_flag : 0u;
+    k_mutex_unlock(&heartbeat_mutex);
+    return result;
 }
 
 uint32_t key_protocol_get_last_heartbeat_elapsed(uint8_t device_id)
 {
+    k_mutex_lock(&heartbeat_mutex, K_FOREVER);
     heartbeat_state_t *state = get_heartbeat_state(device_id);
+    uint32_t result;
     if (state == NULL)
     {
-        return HEARTBEAT_TIMEOUT_MS;
+        result = HEARTBEAT_TIMEOUT_MS;
     }
-    uint32_t now = millis();
-    return (now >= state->last_time) ? (now - state->last_time) : 0u;
+    else
+    {
+        uint32_t now = millis();
+        result = (now >= state->last_time) ? (now - state->last_time) : 0u;
+    }
+    k_mutex_unlock(&heartbeat_mutex);
+    return result;
+}
+
+/**
+ * @brief 모든 디바이스의 heartbeat 상태를 복사 (외부 스레드에서 사용 가능)
+ * @param left_connected 왼쪽 키보드 연결 상태 출력
+ * @param left_battery 왼쪽 키보드 배터리 레벨 출력
+ * @param right_connected 오른쪽 키보드 연결 상태 출력
+ * @param right_battery 오른쪽 키보드 배터리 레벨 출력
+ */
+void key_protocol_get_all_states(bool *left_connected, uint8_t *left_battery,
+                                  bool *right_connected, uint8_t *right_battery)
+{
+    k_mutex_lock(&heartbeat_mutex, K_FOREVER);
+    
+    heartbeat_state_t *left_state = get_heartbeat_state(DEVICE_ID_LEFT);
+    if (left_state != NULL)
+    {
+        if (left_connected != NULL) *left_connected = left_state->connected;
+        if (left_battery != NULL) *left_battery = left_state->battery_level;
+    }
+    else
+    {
+        if (left_connected != NULL) *left_connected = false;
+        if (left_battery != NULL) *left_battery = 0u;
+    }
+    
+    heartbeat_state_t *right_state = get_heartbeat_state(DEVICE_ID_RIGHT);
+    if (right_state != NULL)
+    {
+        if (right_connected != NULL) *right_connected = right_state->connected;
+        if (right_battery != NULL) *right_battery = right_state->battery_level;
+    }
+    else
+    {
+        if (right_connected != NULL) *right_connected = false;
+        if (right_battery != NULL) *right_battery = 0u;
+    }
+    
+    k_mutex_unlock(&heartbeat_mutex);
 }
 
 // cli_command 함수 수정 - TX 통계 추가
@@ -535,16 +607,21 @@ static void cli_command(cli_args_t *args)
         cliPrintf("Total TX packets: %u\n", tx_packets);
         cliPrintf("TX error packets: %u\n", tx_errors);
         cliPrintf("Total RX errors: %u\n", rx_errors);
+        
+        k_mutex_lock(&heartbeat_mutex, K_FOREVER);
         for (size_t i = 0; i < sizeof(heartbeat_states) / sizeof(heartbeat_states[0]); ++i)
         {
             heartbeat_state_t *state = &heartbeat_states[i];
+            uint32_t elapsed = millis() - state->last_time;
             cliPrintf("Device 0x%02X - connected:%s status:0x%02X battery:%u%% last:%ums\n",
                       state->device_id,
                       state->connected ? "YES" : "NO",
                       state->status_flag,
                       state->battery_level,
-                      key_protocol_get_last_heartbeat_elapsed(state->device_id));
+                      elapsed);
         }
+        k_mutex_unlock(&heartbeat_mutex);
+        
         cliPrintf("Heartbeat timeout: %ums\n", HEARTBEAT_TIMEOUT_MS);
         return;
     }

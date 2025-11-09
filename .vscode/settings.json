@@ -1,6 +1,7 @@
 {
   "nrf-connect.applications": [
-    "${workspaceFolder}\\app_dongle"
+    "${workspaceFolder}\\app_dongle",
+    "${workspaceFolder}\\app_keyboard"
   ],
   "nrf-connect.boardRoots": [
     "${workspaceFolder}\\boards"

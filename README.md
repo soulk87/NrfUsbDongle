@@ -92,3 +92,7 @@
 - **chcbaram** - [GitHub Repository](https://github.com/chcbaram)
 - **QMK Firmware** - [GitHub Repository](https://github.com/qmk/qmk_firmware)
 - **lvgl** - [GitHub Repository](https://github.com/lvgl/lvgl)
+
+## ⚠️참고 사항
+
+- 개발 진행 중이므로 일부 기능이 미완성일 수 있습니다.
